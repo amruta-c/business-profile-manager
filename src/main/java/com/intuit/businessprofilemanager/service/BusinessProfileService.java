@@ -1,20 +1,19 @@
 package com.intuit.businessprofilemanager.service;
 
 import com.intuit.businessprofilemanager.entity.ProfileEntity;
-import com.intuit.businessprofilemanager.model.BusinessProfile;
-import com.intuit.businessprofilemanager.model.BusinessProfileEntity;
-import com.intuit.businessprofilemanager.model.SubscriptionProducts;
-import com.intuit.businessprofilemanager.model.TaxIdentifier;
+import com.intuit.businessprofilemanager.exception.EntityNotFoundException;
+import com.intuit.businessprofilemanager.exception.InvalidDataException;
+import com.intuit.businessprofilemanager.model.*;
 import com.intuit.businessprofilemanager.repository.BusinessProfileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.intuit.businessprofilemanager.utils.ProfileUtil.getAddress;
-import static com.intuit.businessprofilemanager.utils.ProfileUtil.getProfileEntity;
+import static com.intuit.businessprofilemanager.utils.ProfileUtil.*;
 
 @Service
 @Slf4j
@@ -48,22 +47,53 @@ public class BusinessProfileService implements IBusinessProfileService {
                         .legalAddress(getAddress(profileEntity.getLegalAddress()))
                         .businessAddress(getAddress(profileEntity.getBusinessAddress()))
                         .taxIdentifiers(taxIdentifiers)
-                        .subscriptionProducts(subscriptionProducts)
                         .build())
-                .subscribedProducts(subscriptionProducts.stream().map(SubscriptionProducts::getProducts).collect(Collectors.toList()).get(0))
+                .subscribedProducts(subscriptionProducts.stream()
+                        .flatMap(subscriptionProduct -> subscriptionProduct.getProducts().stream())
+                        .collect(Collectors.toList()))
                 .build();
 
     }
 
     @Override
-    public BusinessProfile updateProfile(BusinessProfile profile) {
-        return null;
+    public BusinessProfileEntity updateProfile(String profileId, BusinessProfile profile) {
+        Optional<ProfileEntity> existingProfileEntity;
+        try {
+            existingProfileEntity = repository.findById(Long.valueOf(profileId));
+            if (existingProfileEntity.isPresent()) {
+                ProfileEntity updatedProfileEntity = ProfileEntity.builder()
+                        .id(existingProfileEntity.get().getId())
+                        .legalName(profile.getLegalName())
+                        .companyName(profile.getCompanyName())
+                        .email(profile.getEmail())
+                        .website(profile.getWebsite())
+                        .businessAddress(getAddress(profile.getBusinessAddress(), AddressType.BUSINESS))
+                        .legalAddress(getAddress(profile.getLegalAddress(), AddressType.LEGAL))
+                        .subscriptionEntities(getSubscriptionEntities(profile.getSubscriptionProducts().get(0).getProducts()))
+                        .taxIdentifiers(getTaxIdentifiers(profile.getTaxIdentifiers()))
+                        .build();
+                repository.save(updatedProfileEntity);
+                return BusinessProfileEntity.builder()
+                        .profile(BusinessProfile.builder()
+                                .id(String.valueOf(updatedProfileEntity.getId()))
+                                .companyName(updatedProfileEntity.getCompanyName())
+                                .legalName(updatedProfileEntity.getLegalName())
+                                .website(updatedProfileEntity.getWebsite())
+                                .email(updatedProfileEntity.getEmail())
+                                .build())
+                        .build();
+            } else {
+                throw new EntityNotFoundException();
+            }
+        } catch (NumberFormatException e) {
+            throw new InvalidDataException();
+        }
     }
 
     @Override
     public boolean deleteProfile(String profileId) {
         ProfileEntity profileEntity = repository.getReferenceById(Long.valueOf(profileId));
-        if (profileEntity!=null) {
+        if (profileEntity != null) {
             repository.deleteById(profileEntity.getId());
             return true;
         }

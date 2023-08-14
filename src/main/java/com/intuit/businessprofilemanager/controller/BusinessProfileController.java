@@ -1,30 +1,41 @@
 package com.intuit.businessprofilemanager.controller;
 
 import com.intuit.businessprofilemanager.model.BusinessProfile;
-import org.springframework.stereotype.Controller;
+import com.intuit.businessprofilemanager.model.BusinessProfileEntity;
+import com.intuit.businessprofilemanager.service.BusinessProfileService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Controller
+import javax.validation.Valid;
+
+@RestController
 @RequestMapping("/profile")
 public class BusinessProfileController {
 
-    //read
+    private final BusinessProfileService businessProfileService;
+
+    public BusinessProfileController(BusinessProfileService businessProfileService) {
+        this.businessProfileService = businessProfileService;
+    }
+
+    /**
+     * @param profileId
+     * @return
+     */
     @GetMapping("/{profileId}")
-    public void getBusinessProfile(@PathVariable String profileId) {
-        // TODO document why this method is empty
+    public ResponseEntity<BusinessProfileEntity> getBusinessProfile(@PathVariable String profileId) {
+        return ResponseEntity.ok(businessProfileService.getProfile(profileId));
     }
 
-    //put
+    /**
+     * @param profileId
+     * @param profile
+     * @return
+     */
     @PutMapping("/{profileId}")
-    public void updateProfile(@PathVariable String profileId, @RequestBody BusinessProfile profile) {
-        // TODO document why this method is empty
+    public ResponseEntity<BusinessProfileEntity> updateProfile(@PathVariable String profileId,
+                                                               @RequestBody @Valid BusinessProfile profile) {
+        return ResponseEntity.ok(businessProfileService.updateProfile(profileId, profile));
     }
-
-    //patch
-//    @PatchMapping("/{id}")
-//    public void updateProfile() {
-//
-//    }
-
 
 }

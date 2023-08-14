@@ -31,13 +31,4 @@ public class TaxIdentifiersEntity implements Serializable {
     @JoinColumn(name = "profile_id", insertable = false, updatable = false)
     private ProfileEntity profile;
 
-    @Override
-    public String toString() {
-        return "TaxIdentifiersEntity{" +
-                "id=" + id +
-                ", taxIdentifierType=" + taxIdentifierType +
-                ", taxIdentifierNo='" + taxIdentifierNo + '\'' +
-                ", profile=" + profile +
-                '}';
-    }
 }

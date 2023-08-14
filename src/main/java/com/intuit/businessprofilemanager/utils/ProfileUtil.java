@@ -30,7 +30,20 @@ public class ProfileUtil {
                 .build();
     }
 
-    private static Set<SubscriptionEntity> getSubscriptionEntities(List<String> products) {
+    public static ProfileEntity getProfileEntity(BusinessProfile profile) {
+        return ProfileEntity.builder()
+                .companyName(profile.getCompanyName())
+                .legalName(profile.getLegalName())
+                .email(profile.getEmail())
+                .website(profile.getWebsite())
+                .businessAddress(getAddress(profile.getBusinessAddress(), AddressType.BUSINESS))
+                .legalAddress(getAddress(profile.getLegalAddress(), AddressType.LEGAL))
+                .taxIdentifiers(getTaxIdentifiers(profile.getTaxIdentifiers()))
+                .subscriptionEntities(getSubscriptionEntities(profile.getSubscriptionProducts().get(0).getProducts()))
+                .build();
+    }
+
+    public static Set<SubscriptionEntity> getSubscriptionEntities(List<String> products) {
         return products.stream().map(product -> SubscriptionEntity.builder()
                 .product(product)
                 .build()).collect(Collectors.toSet());
@@ -46,7 +59,7 @@ public class ProfileUtil {
 
     public static AddressEntity getAddress(Address address, AddressType addressType) {
         return AddressEntity.builder()
-                .addressType(addressType.equals(AddressType.LEGAL)?AddressType.LEGAL: AddressType.BUSINESS)
+                .addressType(addressType.equals(AddressType.LEGAL) ? AddressType.LEGAL : AddressType.BUSINESS)
                 .line1(address.getLine1())
                 .line2(address.getLine2())
                 .city(address.getCity())

@@ -15,6 +15,4 @@ public class UnsubscriptionRequest {
     @NotNull
     @Size(min = 1, max = 100)
     List<String> products;
-    @NotNull
-    private String profileId;
 }

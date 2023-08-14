@@ -31,11 +31,12 @@ public class SubscriptionService implements ISubscriptionService {
         ValidationResponse validationResponse = validationService.validate(request.getProfile(), request.getProducts());
         if (validationResponse.getStatus() == ValidationStatus.FAILED) {
             //build and return response;
-            return new SubscriptionResponse(null, "", ErrorResponse.builder().build());
+            return new SubscriptionResponse(null, validationResponse.getValidationMessage(),
+                    ErrorResponse.builder().responseMessage(validationResponse.getValidationMessage()).build());
         }
 
         String profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
-        return new SubscriptionResponse(profileId, "Business profile is updated and subscribed to products", new ErrorResponse());
+        return new SubscriptionResponse(profileId, "Business profile is updated and subscribed to products", null);
     }
 
     /**
@@ -66,6 +67,7 @@ public class SubscriptionService implements ISubscriptionService {
     public UnsubscriptionResponse unsubscribe(String profileId, UnsubscriptionRequest request) {
         //unlink and mark profile as inactive
         businessProfileService.deleteProfile(profileId);
-        return null;
+        return UnsubscriptionResponse.builder()
+                .profileId(profileId).build();
     }
 }

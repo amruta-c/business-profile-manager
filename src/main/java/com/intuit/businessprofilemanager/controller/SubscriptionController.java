@@ -19,20 +19,34 @@ public class SubscriptionController {
         this.subscriptionService = subscriptionService;
     }
 
+    /**
+     * @param request
+     * @return
+     */
     @PostMapping("/subscribe")
     public ResponseEntity<SubscriptionResponse> subscribe(@RequestBody @Valid SubscriptionRequest request) {
         return ResponseEntity.ok(subscriptionService.subscribe(request));
     }
 
+    /**
+     * @param profileId
+     * @param products
+     * @return
+     */
     @PostMapping("/profile/{profileId}/subscribe")
-    public ResponseEntity<SubscriptionResponse> subscribe(@RequestBody @Valid SubscriptionProducts products,
-                                                          @PathVariable String profileId) {
+    public ResponseEntity<SubscriptionResponse> subscribe(@PathVariable String profileId,
+                                                          @RequestBody @Valid SubscriptionProducts products) {
         return ResponseEntity.ok(subscriptionService.subscribe(profileId, products));
     }
 
+    /**
+     * @param profileId
+     * @param request
+     * @return
+     */
     @PostMapping("/profile/{profileId}/unsubscribe")
-    public ResponseEntity<UnsubscriptionResponse> unsubscribe(@RequestBody @Valid UnsubscriptionRequest request,
-                                                              @PathVariable String profileId) {
+    public ResponseEntity<UnsubscriptionResponse> unsubscribe(@PathVariable String profileId,
+                                                              @RequestBody @Valid UnsubscriptionRequest request) {
         return ResponseEntity.ok(subscriptionService.unsubscribe(profileId, request));
     }
 

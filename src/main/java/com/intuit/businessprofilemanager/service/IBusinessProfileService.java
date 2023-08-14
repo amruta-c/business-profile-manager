@@ -10,7 +10,7 @@ public interface IBusinessProfileService {
 
     BusinessProfileEntity getProfile(String profileId);
 
-    BusinessProfile updateProfile(BusinessProfile profile);
+    BusinessProfileEntity updateProfile(String profileId, BusinessProfile profile);
 
     boolean deleteProfile(String profileId);
 
