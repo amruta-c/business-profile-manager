@@ -35,7 +35,7 @@ public class SubscriptionService implements ISubscriptionService {
         }
 
         String profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
-        return new SubscriptionResponse(profileId, "Business profile is updated and subscribed to products", null);
+        return new SubscriptionResponse(profileId, "Business profile is updated and subscribed to products", new ErrorResponse());
     }
 
     /**

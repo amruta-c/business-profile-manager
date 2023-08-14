@@ -1,0 +1,192 @@
+swagger: '2.0'
+info:
+  title: Business Profile Validation and Subscription API
+  version: 1.0.0
+
+paths:
+  /validate/accounting:
+    post:
+      summary: Validate Business Profile for Accounting Product
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/BusinessProfile'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/ProductValidationResponse'
+
+  /validate/payroll:
+    post:
+      summary: Validate Business Profile for Payroll Product
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/BusinessProfile'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/ProductValidationResponse'
+
+  /validate/payments:
+    post:
+      summary: Validate Business Profile for Payments Product
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/BusinessProfile'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/ProductValidationResponse'
+
+  /validate/timesheet:
+    post:
+      summary: Validate Business Profile for Timesheet Product
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/BusinessProfile'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/ProductValidationResponse'
+
+  /validate:
+    post:
+      summary: Validate Business Profile Against Multiple Products
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/MultiProductValidationRequest'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/MultiProductValidationResponse'
+
+  /subscribe:
+    post:
+      summary: Subscribe Business Profile to Products
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/SubscriptionRequest'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/SubscriptionResponse'
+
+definitions:
+  Address:
+    type: object
+    properties:
+      line1:
+        type: string
+      line2:
+        type: string
+      city:
+        type: string
+      state:
+        type: string
+      zip:
+        type: string
+      country:
+        type: string
+
+  BusinessProfile:
+    type: object
+    properties:
+      companyName:
+        type: string
+      legalName:
+        type: string
+      businessAddress:
+        $ref: '#/definitions/Address'
+      legalAddress:
+        $ref: '#/definitions/Address'
+      taxID:
+        type: string
+      email:
+        type: string
+      website:
+        type: string
+
+  MultiProductValidationRequest:
+    type: object
+    properties:
+      businessProfile:
+        $ref: '#/definitions/BusinessProfile'
+      products:
+        type: array
+        items:
+          type: string
+
+  ProductValidationResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      message:
+        type: string
+
+  MultiProductValidationResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      validationResponse:
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/ProductValidationResponse'
+
+  SubscriptionRequest:
+    type: object
+    properties:
+      businessProfile:
+        $ref: '#/definitions/BusinessProfile'
+      products:
+        type: array
+        items:
+          type: string
+
+  SubscriptionResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      message:
+        type: string
+      batchValidationResponse:
+        $ref: '#/definitions/MultiProductValidationResponse'
+      texID:
+        type: string

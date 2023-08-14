@@ -9,6 +9,6 @@ public class BaseController {
 
     @RequestMapping("/")
     public ResponseEntity<String> home() {
-        return ResponseEntity.ok("Welcome to Business Profile subscription page");
+        return ResponseEntity.ok("Hello world!");
     }
 }
