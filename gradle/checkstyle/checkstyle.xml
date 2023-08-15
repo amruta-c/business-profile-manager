@@ -1,0 +1,58 @@
+<!DOCTYPE module PUBLIC
+        "-//Puppy Crawl//DTD Check Configuration 1.2//EN"
+        "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
+<module name="Checker">
+    <module name="SuppressionFilter">
+        <property name="file" value="${checkstyleConfigDir}/suppressions.xml"/>
+    </module>
+    <module name="SuppressWarningsFilter"/>
+    <module name="TreeWalker">
+
+        <module name="Indentation"/>
+
+        <!-- Blocks -->
+        <module name="EmptyBlock">
+            <property name="tokens"
+                      value="LITERAL_DO,LITERAL_ELSE,LITERAL_FINALLY,LITERAL_IF,LITERAL_FOR,LITERAL_TRY,LITERAL_WHILE,INSTANCE_INIT,STATIC_INIT"/>
+        </module>
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+            <property name="tokens" value="LITERAL_CATCH"/>
+        </module>
+        <module name="AvoidNestedBlocks"/>
+
+        <!-- Braces -->
+        <module name="LeftCurly"/>
+        <module name="RightCurly"/>
+
+        <!-- Whitespace -->
+        <module name="GenericWhitespace"/>
+        <module name="EmptyForInitializerPad"/>
+        <module name="EmptyForIteratorPad"/>
+        <module name="MethodParamPad"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="NoWhitespaceAfter"/>
+        <module name="OperatorWrap">
+            <property name="option" value="eol"/>
+        </module>
+        <module name="ParenPad"/>
+        <module name="TypecastParenPad"/>
+        <module name="WhitespaceAfter">
+            <property name="tokens" value="COMMA, SEMI"/>
+        </module>
+
+        <!-- Design -->
+        <module name="InterfaceIsType"/>
+
+        <!-- Imports -->
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+
+    </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="File \| Settings \| File Templates"/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="Created with IntelliJ IDEA"/>
+    </module>
+</module>
