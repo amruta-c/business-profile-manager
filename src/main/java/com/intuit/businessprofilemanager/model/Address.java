@@ -1,15 +1,18 @@
 package com.intuit.businessprofilemanager.model;
 
-import com.intuit.businessprofilemanager.entity.AddressEntity;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class Address {
     private String line1;
     private String line2;
