@@ -2,13 +2,10 @@ package com.intuit.businessprofilemanager.service;
 
 import com.intuit.businessprofilemanager.model.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -23,51 +20,65 @@ public class SubscriptionService implements ISubscriptionService {
     }
 
     /**
-     * @param request
-     * @return
+     * Validates and processes the subscription request, returning the subscribed profileId along with an appropriate message.
+     *
+     * @param request The subscription request that needs to be validated and processed for subscription.
+     * @return The subscribed profileId along with a message relevant to the subscription status.
      */
     @Override
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
         ValidationResponse validationResponse = validationService.validate(request.getProfile(), request.getProducts());
         if (validationResponse.getStatus() == ValidationStatus.FAILED) {
-            //build and return response;
             return new SubscriptionResponse(null, validationResponse.getValidationMessage(),
-                    ErrorResponse.builder().responseMessage(validationResponse.getValidationMessage()).build());
+                    ErrorResponse.builder()
+                            .responseCode(HttpStatus.valueOf(validationResponse.getStatusCode().value()))
+                            .responseMessage(validationResponse.getValidationMessage())
+                            .responseDetail("Either the validation API is currently unavailable, or the subscription request provided is invalid. Please review the entered request that requires subscription.")
+                            .build());
         }
 
         String profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
-        return new SubscriptionResponse(profileId, "Business profile is updated and subscribed to products", null);
+        log.info("Business profile with profileId: {} has been subscribed successfully", profileId);
+        return new SubscriptionResponse(profileId, "Business profile is validated and subscribed successfully", null);
     }
 
     /**
-     * @param profileId
-     * @param subscriptionsRequested
-     * @return
+     * Subscribes to the requested products for the given profileId and provides a message indicating the subscription status.
+     *
+     * @param profileId              The unique identifier for each subscription.
+     * @param subscriptionsRequested The list of products in the subscription request that need validation and processing.
+     * @return The subscribed profileId along with a pertinent message about the subscription outcome.
      */
 
     @Override
     public SubscriptionResponse subscribe(String profileId, SubscriptionProducts subscriptionsRequested) {
-        BusinessProfileEntity profileEntity = businessProfileService.getProfile(profileId);
-        List<String> alreadySubscribed = profileEntity.getSubscribedProducts();
-        List<String> allSubscriptions = new ArrayList<>(new HashSet<>(Stream.concat(alreadySubscribed.stream(),
-                subscriptionsRequested.getProducts().stream()).collect(Collectors.toList())));
-
-        if (allSubscriptions.size() == subscriptionsRequested.getProducts().size()) {
-            return new SubscriptionResponse(profileEntity.getProfile().getId(), "Already subscribed to products", null);
-        }
-        businessProfileService.updateSubscription(profileId, allSubscriptions);
-        return new SubscriptionResponse(profileId, "Subscribed to the products", null);
+        List<String> tobeSubscribedProducts = subscriptionsRequested.getProducts();
+        BusinessProfile updatedProfile = businessProfileService.updateSubscription(profileId, tobeSubscribedProducts);
+        log.info("ProfileId: {} has been subscribed to the products: {} successfully", profileId, subscriptionsRequested.getProducts().toString());
+        return new SubscriptionResponse(profileId, "Subscribed to the products: " + updatedProfile.getSubscriptionProducts().get(0).getProducts(), null);
     }
 
     /**
-     * @param request
-     * @return
+     * Processes the unsubscription request for the given profileId and products, returning the unsubscribed profileId along with a relevant message.
+     *
+     * @param profileId The unique identifier for each subscription.
+     * @param request   The list of products in the unsubscription request that need to be unsubscribed.
+     * @return The unsubscribed profileId along with a message relevant to the unsubscription status.
      */
     @Override
     public UnsubscriptionResponse unsubscribe(String profileId, UnsubscriptionRequest request) {
-        //unlink and mark profile as inactive
-        businessProfileService.deleteProfile(profileId);
+        boolean isUnsubscribeSuccessful = businessProfileService.deleteProfile(profileId);
+        if (isUnsubscribeSuccessful) {
+            log.info("ProfileId: {} has been successfully unsubscribed.", profileId);
+            return UnsubscriptionResponse.builder()
+                    .profileId(profileId)
+                    .message("The business profile has been successfully unsubscribed.")
+                    .build();
+        }
+        log.error("ProfileId: {} couldn't get unsubscribed due to some issue", profileId);
         return UnsubscriptionResponse.builder()
-                .profileId(profileId).build();
+                .profileId(profileId)
+                .message("The business profile couldn't get unsubscribed.")
+                .build();
     }
 }

@@ -7,6 +7,4 @@ import java.util.List;
 
 public interface IValidationService {
     ValidationResponse validate(BusinessProfile profile, List<String> products);
-
-    ValidationResponse validate(BusinessProfile profile, String product);
 }

@@ -1,5 +1,6 @@
 package com.intuit.businessprofilemanager.service;
 
+import com.intuit.businessprofilemanager.exception.InvalidDataException;
 import com.intuit.businessprofilemanager.model.BusinessProfile;
 import com.intuit.businessprofilemanager.model.BusinessProfileEntity;
 
@@ -10,7 +11,7 @@ public interface IBusinessProfileService {
 
     BusinessProfileEntity getProfile(String profileId);
 
-    BusinessProfileEntity updateProfile(String profileId, BusinessProfile profile);
+    BusinessProfileEntity updateProfile(String profileId, BusinessProfile profile) throws InvalidDataException;
 
     boolean deleteProfile(String profileId);
 

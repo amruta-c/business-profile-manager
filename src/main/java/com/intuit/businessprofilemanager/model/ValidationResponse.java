@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Builder;
 import lombok.Data;
+import org.springframework.http.HttpStatus;
 
 @Data
 @Builder
@@ -13,5 +14,6 @@ import lombok.Data;
 public class ValidationResponse {
     private String productId;
     private ValidationStatus status;
+    private HttpStatus statusCode;
     private String validationMessage;
 }

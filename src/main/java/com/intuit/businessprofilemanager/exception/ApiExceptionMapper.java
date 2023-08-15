@@ -6,7 +6,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.LinkedHashMap;
@@ -21,18 +20,34 @@ public class ApiExceptionMapper extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(InvalidDataException.class)
-    public ResponseEntity<Object> handleInvalidDataException(InvalidDataException e, WebRequest request) {
+    public ResponseEntity<Object> handleInvalidDataException(InvalidDataException e) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("code", HttpStatus.BAD_REQUEST.value());
-        body.put("message", "Failed to validate profile data " + e.getMessage());
+        body.put("message", "Failed to validate profile data. Exception: " + e.getMessage());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Object> handleEntityNotFoundException(EntityNotFoundException e, WebRequest request) {
+    @ExceptionHandler(ValidationApiFailureException.class)
+    public ResponseEntity<Object> handleValidationApiFailureException(ValidationApiFailureException e) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("code", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        body.put("message", "Validation api is unavailable. Exception: " + e.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(FutureAwaitingException.class)
+    public ResponseEntity<Object> handleUnsuccessfulValidationResponseRetrievalException(FutureAwaitingException e) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("code", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        body.put("message", "Exception caught while waiting for validation result futures. Exception: " + e.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(DataNotFoundException.class)
+    public ResponseEntity<Object> handleDataNotFoundException(DataNotFoundException e) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("code", HttpStatus.NOT_FOUND.value());
-        body.put("message", "Entity not found in database " + e.getMessage());
+        body.put("message", "Provided profileId is not subscribed or is invalid. Exception: " + e.getMessage());
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 }

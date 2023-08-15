@@ -12,4 +12,5 @@ import lombok.Data;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UnsubscriptionResponse {
     private String profileId;
+    private String message;
 }

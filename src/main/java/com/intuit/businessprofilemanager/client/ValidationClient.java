@@ -1,20 +1,19 @@
 package com.intuit.businessprofilemanager.client;
 
-import com.intuit.businessprofilemanager.exception.InvalidDataException;
+import com.intuit.businessprofilemanager.exception.ValidationApiFailureException;
 import com.intuit.businessprofilemanager.model.BusinessProfile;
 import com.intuit.businessprofilemanager.model.ValidationResponse;
 import com.intuit.businessprofilemanager.model.ValidationStatus;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+
+import java.time.LocalDateTime;
+import java.util.concurrent.ExecutionException;
 
 @Service
 @Slf4j
@@ -29,8 +28,8 @@ public class ValidationClient {
     }
 
     @CircuitBreaker(name = "validationCircuit", fallbackMethod = "fallbackValidation")
-    @Retryable(maxAttemptsExpression = "#{${validation.api.maxAttempts:3}}", value = {HttpServerErrorException.class}, backoff = @Backoff(delayExpression = "#{${validation.api.backOffDelay:1000}}"))
-    public ResponseEntity<ValidationResponse> callValidationApi(BusinessProfile request, String product) {
+    @Retry(name = "validationRetry")
+    public ResponseEntity<ValidationResponse> callValidationApi(BusinessProfile request, String product) throws ExecutionException {
         String url = apiTitleUrl + "/validate";
 
         HttpHeaders headers = new HttpHeaders();
@@ -49,36 +48,35 @@ public class ValidationClient {
 
         HttpEntity<BusinessProfile> requestEntity = new HttpEntity<>(requestDTO, headers);
 
-        ResponseEntity<String> responseEntity;
         try {
-            responseEntity = restTemplate.postForEntity(url, requestEntity, String.class);
-            HttpStatus statusCode = responseEntity.getStatusCode();
-
-            if (statusCode.is2xxSuccessful()) {
-                // Successful response (2xx)
-                return ResponseEntity.ok(ValidationResponse.builder().productId(product).status(ValidationStatus.SUCCESSFUL).validationMessage(responseEntity.getBody()).build());
-            } else if (statusCode.is4xxClientError()) {
-                // Client-side error (4xx)
-                throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
-            } else if (statusCode.is5xxServerError()) {
-                // Server-side error (5xx)
-                throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
-            } else {
-                // Handle other cases (non-2xx, non-4xx, non-5xx)
-                throw new InvalidDataException();
-            }
-        } catch (RestClientException e) {
-            return ResponseEntity.internalServerError().body(ValidationResponse.builder().status(ValidationStatus.FAILED).validationMessage(e.getMessage()).build());
+            log.info("Making request to validation API: {} at: {}", url, LocalDateTime.now());
+            ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, requestEntity, String.class);
+            return createResponseEntity(responseEntity.getStatusCode(), responseEntity.getBody());
+        } catch (ValidationApiFailureException e) {
+            throw new ValidationApiFailureException();
         }
     }
 
-    public ResponseEntity<ValidationResponse> fallbackValidation(BusinessProfile request, String product, Exception ex) {
-        // Implement your fallback logic here
-        log.error("Fallback validation performed due to service unavailability:");
-        return ResponseEntity.internalServerError()
+    public ResponseEntity<ValidationResponse> fallbackValidation(Throwable ex) {
+        log.error("Fallback validation performed due to service unavailability: {}", ex.getMessage());
+        return createErrorResponse("Fallback validation performed due to service unavailability: " + ex.getMessage());
+    }
+
+    private ResponseEntity<ValidationResponse> createResponseEntity(HttpStatus status, String validationMessage) {
+        return ResponseEntity.status(status)
+                .body(ValidationResponse.builder()
+                        .status(status.is2xxSuccessful() ? ValidationStatus.SUCCESSFUL : ValidationStatus.FAILED)
+                        .statusCode(status)
+                        .validationMessage(validationMessage)
+                        .build());
+    }
+
+    private ResponseEntity<ValidationResponse> createErrorResponse(String errorMessage) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ValidationResponse.builder()
                         .status(ValidationStatus.FAILED)
-                        .validationMessage("Fallback validation performed due to service unavailability: " + ex.getMessage())
+                        .statusCode(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .validationMessage(errorMessage)
                         .build());
     }
 }
