@@ -1,6 +1,8 @@
 package com.intuit.businessprofilemanager.service;
 
 import com.intuit.businessprofilemanager.model.*;
+import com.intuit.businessprofilemanager.utils.AppMetrics;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,10 +15,12 @@ public class SubscriptionService implements ISubscriptionService {
 
     private final IValidationService validationService;
     private final IBusinessProfileService businessProfileService;
+    private final AppMetrics metrics;
 
-    public SubscriptionService(IValidationService validationService, IBusinessProfileService businessProfileService) {
+    public SubscriptionService(IValidationService validationService, IBusinessProfileService businessProfileService, AppMetrics metrics) {
         this.validationService = validationService;
         this.businessProfileService = businessProfileService;
+        this.metrics = metrics;
     }
 
     /**
@@ -26,6 +30,7 @@ public class SubscriptionService implements ISubscriptionService {
      * @return The subscribed profileId along with a message relevant to the subscription status.
      */
     @Override
+    @Timed(value = "business-profile-manager.endpoint.subscribe.timer")
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
         ValidationResponse validationResponse = validationService.validate(request.getProfile(), request.getProducts());
         if (validationResponse.getStatus() == ValidationStatus.FAILED) {
@@ -39,6 +44,7 @@ public class SubscriptionService implements ISubscriptionService {
 
         String profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
         log.info("Business profile with profileId: {} has been subscribed successfully", profileId);
+        metrics.incrementSUBSCRIPTION_COUNT();
         return new SubscriptionResponse(profileId, "Business profile is validated and subscribed successfully", null);
     }
 
@@ -51,10 +57,12 @@ public class SubscriptionService implements ISubscriptionService {
      */
 
     @Override
+    @Timed(value = "business-profile-manager.endpoint.subscribe-products.timer")
     public SubscriptionResponse subscribe(String profileId, SubscriptionProducts subscriptionsRequested) {
         List<String> tobeSubscribedProducts = subscriptionsRequested.getProducts();
         BusinessProfile updatedProfile = businessProfileService.updateSubscription(profileId, tobeSubscribedProducts);
         log.info("ProfileId: {} has been subscribed to the products: {} successfully", profileId, subscriptionsRequested.getProducts().toString());
+        metrics.incrementSUBSCRIPTION_COUNT();
         return new SubscriptionResponse(profileId, "Subscribed to the products: " + updatedProfile.getSubscriptionProducts().get(0).getProducts(), null);
     }
 
@@ -66,10 +74,12 @@ public class SubscriptionService implements ISubscriptionService {
      * @return The unsubscribed profileId along with a message relevant to the unsubscription status.
      */
     @Override
+    @Timed(value = "business-profile-manager.endpoint.unsubscribe.timer")
     public UnsubscriptionResponse unsubscribe(String profileId, UnsubscriptionRequest request) {
         boolean isUnsubscribeSuccessful = businessProfileService.deleteProfile(profileId);
         if (isUnsubscribeSuccessful) {
             log.info("ProfileId: {} has been successfully unsubscribed.", profileId);
+            metrics.incrementUNSUBSCRIPTION_COUNT();
             return UnsubscriptionResponse.builder()
                     .profileId(profileId)
                     .message("The business profile has been successfully unsubscribed.")

@@ -6,6 +6,7 @@ import com.intuit.businessprofilemanager.exception.ValidationApiFailureException
 import com.intuit.businessprofilemanager.model.BusinessProfile;
 import com.intuit.businessprofilemanager.model.ValidationResponse;
 import com.intuit.businessprofilemanager.model.ValidationStatus;
+import com.intuit.businessprofilemanager.utils.AppMetrics;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -19,9 +20,11 @@ import java.util.stream.Collectors;
 public class ValidationService implements IValidationService {
 
     private final ValidationClient validationClient;
+    private final AppMetrics metrics;
 
-    public ValidationService(ValidationClient validationClient) {
+    public ValidationService(ValidationClient validationClient, AppMetrics metrics) {
         this.validationClient = validationClient;
+        this.metrics = metrics;
     }
 
     @Override
@@ -51,6 +54,7 @@ public class ValidationService implements IValidationService {
             ResponseEntity<ValidationResponse> validationResponse = validationClient.callValidationApi(profile, product);
             return validationResponse.getBody();
         } catch (ValidationApiFailureException | ExecutionException ex) {
+            metrics.incrementVALIDATION_API_FAILURE();
             throw new ValidationApiFailureException();
         }
     }
@@ -74,6 +78,7 @@ public class ValidationService implements IValidationService {
         HttpStatus aggregatedStatus = hasFailedResponse ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK;
 
         if (hasFailedResponse) {
+            metrics.incrementVALIDATION_API_FAILURE();
             return ValidationResponse.builder()
                     .status(ValidationStatus.FAILED)
                     .statusCode(aggregatedStatus)
@@ -84,7 +89,7 @@ public class ValidationService implements IValidationService {
             for (ValidationResponse response : responses) {
                 summaryMessage.append(response.getValidationMessage()).append("\n");
             }
-
+            metrics.incrementVALIDATION_API_SUCCESS();
             return ValidationResponse.builder()
                     .status(ValidationStatus.SUCCESSFUL)
                     .statusCode(aggregatedStatus)

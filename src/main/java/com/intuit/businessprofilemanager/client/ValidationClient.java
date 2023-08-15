@@ -6,6 +6,7 @@ import com.intuit.businessprofilemanager.model.ValidationResponse;
 import com.intuit.businessprofilemanager.model.ValidationStatus;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -29,6 +30,7 @@ public class ValidationClient {
 
     @CircuitBreaker(name = "validationCircuit", fallbackMethod = "fallbackValidation")
     @Retry(name = "validationRetry")
+    @Timed(value = "business-profile-manager.validation-api.timer")
     public ResponseEntity<ValidationResponse> callValidationApi(BusinessProfile request, String product) throws ExecutionException {
         String url = apiTitleUrl + "/validate";
 

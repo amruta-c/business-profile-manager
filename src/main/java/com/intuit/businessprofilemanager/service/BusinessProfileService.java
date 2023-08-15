@@ -6,6 +6,8 @@ import com.intuit.businessprofilemanager.exception.DataNotFoundException;
 import com.intuit.businessprofilemanager.exception.InvalidDataException;
 import com.intuit.businessprofilemanager.model.*;
 import com.intuit.businessprofilemanager.repository.BusinessProfileRepository;
+import com.intuit.businessprofilemanager.utils.AppMetrics;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -18,9 +20,11 @@ import static com.intuit.businessprofilemanager.utils.ProfileUtil.*;
 @Slf4j
 public class BusinessProfileService implements IBusinessProfileService {
     private final BusinessProfileRepository repository;
+    private final AppMetrics metrics;
 
-    public BusinessProfileService(BusinessProfileRepository repository) {
+    public BusinessProfileService(BusinessProfileRepository repository, AppMetrics metrics) {
         this.repository = repository;
+        this.metrics = metrics;
     }
 
     /**
@@ -29,6 +33,7 @@ public class BusinessProfileService implements IBusinessProfileService {
      * @return The unique identifier for each subscription.
      */
     @Override
+    @Timed(value = "business-profile-manager.endpoint.create-profile.timer")
     public String createProfile(BusinessProfile profile, List<String> products) {
         ProfileEntity profileEntity = repository.saveAndFlush(getProfileEntity(profile, products));
         return profileEntity.getId().toString();
@@ -41,6 +46,7 @@ public class BusinessProfileService implements IBusinessProfileService {
      * @return Business profile details corresponding to the subscribed profile id.
      */
     @Override
+    @Timed(value = "business-profile-manager.endpoint.get-profile.timer")
     public BusinessProfileEntity getProfile(String profileId) {
         ProfileEntity profileEntity;
         try {
@@ -66,6 +72,7 @@ public class BusinessProfileService implements IBusinessProfileService {
                     .build();
         } catch (Exception e) {
             log.error("The given profileId: {} doesn't exist or profileId is invalid", profileId);
+            metrics.incrementDATA_NOT_FOUND();
             throw new DataNotFoundException();
         }
 
@@ -80,6 +87,7 @@ public class BusinessProfileService implements IBusinessProfileService {
      * @throws InvalidDataException if there's an issue with the provided data.
      */
     @Override
+    @Timed(value = "business-profile-manager.endpoint.update-profile.timer")
     public BusinessProfileEntity updateProfile(String profileId, BusinessProfile profile) throws InvalidDataException {
         Optional<ProfileEntity> existingProfileEntity;
         try {
@@ -108,10 +116,12 @@ public class BusinessProfileService implements IBusinessProfileService {
                         .build();
             } else {
                 log.error("The profile with the provided ID: {} does not have an existing subscription to any products in the database.", profileId);
+                metrics.incrementDATA_NOT_FOUND();
                 throw new DataNotFoundException();
             }
         } catch (NumberFormatException e) {
             log.error("The profile with the provided ID: {} is not valid", profileId);
+            metrics.incrementINVALID_DATA_EXCEPTION();
             throw new InvalidDataException();
         }
     }
@@ -123,6 +133,7 @@ public class BusinessProfileService implements IBusinessProfileService {
      * @return True if the profile has been unsubscribed successfully, otherwise false.
      */
     @Override
+    @Timed(value = "business-profile-manager.endpoint.delete-profile.timer")
     public boolean deleteProfile(String profileId) {
         ProfileEntity profileEntity;
         try {
@@ -130,6 +141,7 @@ public class BusinessProfileService implements IBusinessProfileService {
             repository.deleteById(profileEntity.getId());
             return true;
         } catch (Exception e) {
+            metrics.incrementDATA_NOT_FOUND();
             throw new DataNotFoundException();
         }
     }
@@ -143,6 +155,7 @@ public class BusinessProfileService implements IBusinessProfileService {
      * @return Business profile details corresponding to the subscribed profile id that has been subscribed with new products.
      */
     @Override
+    @Timed(value = "business-profile-manager.endpoint.update-subscription.timer")
     public BusinessProfile updateSubscription(String profileId, List<String> tobeSubscribedProducts) {
         ProfileEntity existingProfileEntity;
         try {
@@ -180,6 +193,7 @@ public class BusinessProfileService implements IBusinessProfileService {
                     .build();
         } catch (Exception e) {
             log.error("The given profileId: {} doesn't exist or profileId is invalid. Exception: {}", profileId, e.getMessage());
+            metrics.incrementDATA_NOT_FOUND();
             throw new DataNotFoundException();
         }
 
