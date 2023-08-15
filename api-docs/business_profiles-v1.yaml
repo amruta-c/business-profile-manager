@@ -1,93 +1,47 @@
 swagger: '2.0'
 info:
-  title: Business Profile Validation and Subscription API
+  title: business_profiles-v1
   version: 1.0.0
-
+  description: Business Profile Validation and Subscription API
+host: localhost:8080
+basePath: /
+produces:
+  - application/json
 paths:
-  /validate/accounting:
-    post:
-      summary: Validate Business Profile for Accounting Product
+  /profile/{profileId}:
+    put:
+      summary: Get Business Profile details
       consumes:
         - application/json
       parameters:
+        - in: path
+          name: profileId
+          required: true
+          type: integer
         - in: body
           name: body
           required: true
           schema:
-            $ref: '#/definitions/BusinessProfile'
+            $ref: '#/definitions/BusinessProfileEntity'
       responses:
         '200':
           description: Successful response
           schema:
-            $ref: '#/definitions/ProductValidationResponse'
-
-  /validate/payroll:
-    post:
-      summary: Validate Business Profile for Payroll Product
+            $ref: '#/definitions/BusinessProfileEntity'
+    get:
+      summary: Get Business Profile details
       consumes:
         - application/json
       parameters:
-        - in: body
-          name: body
+        - in: path
+          name: profileId
           required: true
-          schema:
-            $ref: '#/definitions/BusinessProfile'
+          type: integer
       responses:
         '200':
           description: Successful response
           schema:
-            $ref: '#/definitions/ProductValidationResponse'
-
-  /validate/payments:
-    post:
-      summary: Validate Business Profile for Payments Product
-      consumes:
-        - application/json
-      parameters:
-        - in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/BusinessProfile'
-      responses:
-        '200':
-          description: Successful response
-          schema:
-            $ref: '#/definitions/ProductValidationResponse'
-
-  /validate/timesheet:
-    post:
-      summary: Validate Business Profile for Timesheet Product
-      consumes:
-        - application/json
-      parameters:
-        - in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/BusinessProfile'
-      responses:
-        '200':
-          description: Successful response
-          schema:
-            $ref: '#/definitions/ProductValidationResponse'
-
-  /validate:
-    post:
-      summary: Validate Business Profile Against Multiple Products
-      consumes:
-        - application/json
-      parameters:
-        - in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/MultiProductValidationRequest'
-      responses:
-        '200':
-          description: Successful response
-          schema:
-            $ref: '#/definitions/MultiProductValidationResponse'
+            $ref: '#/definitions/BusinessProfileEntity'
 
   /subscribe:
     post:
@@ -105,7 +59,46 @@ paths:
           description: Successful response
           schema:
             $ref: '#/definitions/SubscriptionResponse'
-
+  /profile/{profileId}/subscribe:
+    post:
+      summary: Subscribe Business Profile to Products
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/SubscriptionRequest'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/SubscriptionResponse'
+  /profile/{profileId}/unsubscribe:
+    post:
+      summary: Subscribe Business Profile to Products
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/UnsubscriptionRequest'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/UnsubscriptionResponse'
 definitions:
   Address:
     type: object
@@ -140,8 +133,7 @@ definitions:
         type: string
       website:
         type: string
-
-  MultiProductValidationRequest:
+  BusinessProfileEntity:
     type: object
     properties:
       businessProfile:
@@ -189,4 +181,16 @@ definitions:
       batchValidationResponse:
         $ref: '#/definitions/MultiProductValidationResponse'
       texID:
+        type: string
+  UnsubscriptionRequest:
+    type: object
+    properties:
+      products:
+        type: array
+        items:
+          type: string
+  UnsubscriptionResponse:
+    type: object
+    properties:
+      profileId:
         type: string
