@@ -33,8 +33,8 @@ public class SubscriptionController {
      * @param products
      * @return
      */
-    @PostMapping("/profile/{profileId}/subscribe")
-    public ResponseEntity<SubscriptionResponse> subscribe(@PathVariable String profileId,
+    @PostMapping("/profiles/{profile_id}/subscribe")
+    public ResponseEntity<SubscriptionResponse> subscribe(@PathVariable(name = "profile_id") String profileId,
                                                           @RequestBody @Valid SubscriptionProducts products) {
         return ResponseEntity.ok(subscriptionService.subscribe(profileId, products));
     }
@@ -44,8 +44,8 @@ public class SubscriptionController {
      * @param request
      * @return
      */
-    @PostMapping("/profile/{profileId}/unsubscribe")
-    public ResponseEntity<UnsubscriptionResponse> unsubscribe(@PathVariable String profileId,
+    @PostMapping("/profiles/{profile_id}/unsubscribe")
+    public ResponseEntity<UnsubscriptionResponse> unsubscribe(@PathVariable(name = "profile_id") String profileId,
                                                               @RequestBody @Valid UnsubscriptionRequest request) {
         return ResponseEntity.ok(subscriptionService.unsubscribe(profileId, request));
     }

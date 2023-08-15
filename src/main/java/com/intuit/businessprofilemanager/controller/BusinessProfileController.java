@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping("/profile")
+@RequestMapping("/profiles")
 public class BusinessProfileController {
 
     private final BusinessProfileService businessProfileService;
@@ -22,8 +22,8 @@ public class BusinessProfileController {
      * @param profileId
      * @return
      */
-    @GetMapping("/{profileId}")
-    public ResponseEntity<BusinessProfileEntity> getBusinessProfile(@PathVariable String profileId) {
+    @GetMapping("/{profile_id}")
+    public ResponseEntity<BusinessProfileEntity> getBusinessProfile(@PathVariable(name = "profile_id") String profileId) {
         return ResponseEntity.ok(businessProfileService.getProfile(profileId));
     }
 
@@ -32,8 +32,8 @@ public class BusinessProfileController {
      * @param profile
      * @return
      */
-    @PutMapping("/{profileId}")
-    public ResponseEntity<BusinessProfileEntity> updateProfile(@PathVariable String profileId,
+    @PutMapping("/{profile_id}")
+    public ResponseEntity<BusinessProfileEntity> updateProfile(@PathVariable(name = "profile_id") String profileId,
                                                                @RequestBody @Valid BusinessProfile profile) {
         return ResponseEntity.ok(businessProfileService.updateProfile(profileId, profile));
     }
