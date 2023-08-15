@@ -54,7 +54,7 @@ public class ValidationService implements IValidationService {
             ResponseEntity<ValidationResponse> validationResponse = validationClient.callValidationApi(profile, product);
             return validationResponse.getBody();
         } catch (ValidationApiFailureException | ExecutionException ex) {
-            metrics.incrementVALIDATION_API_FAILURE();
+            metrics.incrementValidationApiFailureCount();
             throw new ValidationApiFailureException();
         }
     }
@@ -78,7 +78,7 @@ public class ValidationService implements IValidationService {
         HttpStatus aggregatedStatus = hasFailedResponse ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK;
 
         if (hasFailedResponse) {
-            metrics.incrementVALIDATION_API_FAILURE();
+            metrics.incrementValidationApiFailureCount();
             return ValidationResponse.builder()
                     .status(ValidationStatus.FAILED)
                     .statusCode(aggregatedStatus)
@@ -89,7 +89,7 @@ public class ValidationService implements IValidationService {
             for (ValidationResponse response : responses) {
                 summaryMessage.append(response.getValidationMessage()).append("\n");
             }
-            metrics.incrementVALIDATION_API_SUCCESS();
+            metrics.incrementValidationApiSuccessCount();
             return ValidationResponse.builder()
                     .status(ValidationStatus.SUCCESSFUL)
                     .statusCode(aggregatedStatus)

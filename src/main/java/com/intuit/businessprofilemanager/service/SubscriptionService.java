@@ -44,7 +44,7 @@ public class SubscriptionService implements ISubscriptionService {
 
         String profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
         log.info("Business profile with profileId: {} has been subscribed successfully", profileId);
-        metrics.incrementSUBSCRIPTION_COUNT();
+        metrics.incrementSubscriptionCount();
         return new SubscriptionResponse(profileId, "Business profile is validated and subscribed successfully", null);
     }
 
@@ -62,7 +62,7 @@ public class SubscriptionService implements ISubscriptionService {
         List<String> tobeSubscribedProducts = subscriptionsRequested.getProducts();
         BusinessProfile updatedProfile = businessProfileService.updateSubscription(profileId, tobeSubscribedProducts);
         log.info("ProfileId: {} has been subscribed to the products: {} successfully", profileId, subscriptionsRequested.getProducts().toString());
-        metrics.incrementSUBSCRIPTION_COUNT();
+        metrics.incrementSubscriptionCount();
         return new SubscriptionResponse(profileId, "Subscribed to the products: " + updatedProfile.getSubscriptionProducts().get(0).getProducts(), null);
     }
 
@@ -79,7 +79,7 @@ public class SubscriptionService implements ISubscriptionService {
         boolean isUnsubscribeSuccessful = businessProfileService.deleteProfile(profileId);
         if (isUnsubscribeSuccessful) {
             log.info("ProfileId: {} has been successfully unsubscribed.", profileId);
-            metrics.incrementUNSUBSCRIPTION_COUNT();
+            metrics.incrementUnsubscriptionCount();
             return UnsubscriptionResponse.builder()
                     .profileId(profileId)
                     .message("The business profile has been successfully unsubscribed.")

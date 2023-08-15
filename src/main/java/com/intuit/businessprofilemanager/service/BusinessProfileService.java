@@ -72,7 +72,7 @@ public class BusinessProfileService implements IBusinessProfileService {
                     .build();
         } catch (Exception e) {
             log.error("The given profileId: {} doesn't exist or profileId is invalid", profileId);
-            metrics.incrementDATA_NOT_FOUND();
+            metrics.incrementDataNotFoundCount();
             throw new DataNotFoundException();
         }
 
@@ -116,12 +116,12 @@ public class BusinessProfileService implements IBusinessProfileService {
                         .build();
             } else {
                 log.error("The profile with the provided ID: {} does not have an existing subscription to any products in the database.", profileId);
-                metrics.incrementDATA_NOT_FOUND();
+                metrics.incrementDataNotFoundCount();
                 throw new DataNotFoundException();
             }
         } catch (NumberFormatException e) {
             log.error("The profile with the provided ID: {} is not valid", profileId);
-            metrics.incrementINVALID_DATA_EXCEPTION();
+            metrics.incrementInvalidDataExceptionCount();
             throw new InvalidDataException();
         }
     }
@@ -141,7 +141,7 @@ public class BusinessProfileService implements IBusinessProfileService {
             repository.deleteById(profileEntity.getId());
             return true;
         } catch (Exception e) {
-            metrics.incrementDATA_NOT_FOUND();
+            metrics.incrementDataNotFoundCount();
             throw new DataNotFoundException();
         }
     }
@@ -193,7 +193,7 @@ public class BusinessProfileService implements IBusinessProfileService {
                     .build();
         } catch (Exception e) {
             log.error("The given profileId: {} doesn't exist or profileId is invalid. Exception: {}", profileId, e.getMessage());
-            metrics.incrementDATA_NOT_FOUND();
+            metrics.incrementDataNotFoundCount();
             throw new DataNotFoundException();
         }
 
