@@ -5,7 +5,7 @@ import com.intuit.businessprofilemanager.model.*;
 public interface ISubscriptionService {
     SubscriptionResponse subscribe(SubscriptionRequest request);
 
-    SubscriptionResponse subscribe(String profileId, SubscriptionProducts products);
+    SubscriptionResponse subscribe(Long profileId, SubscriptionProducts products);
 
-    UnsubscriptionResponse unsubscribe(String profileId, UnsubscriptionRequest request);
+    UnsubscriptionResponse unsubscribe(Long profileId, UnsubscriptionRequest request);
 }

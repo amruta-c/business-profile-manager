@@ -3,15 +3,20 @@ package com.intuit.businessprofilemanager.service;
 import com.intuit.businessprofilemanager.entity.ProfileEntity;
 import com.intuit.businessprofilemanager.entity.SubscriptionEntity;
 import com.intuit.businessprofilemanager.exception.DataNotFoundException;
-import com.intuit.businessprofilemanager.exception.InvalidDataException;
+import com.intuit.businessprofilemanager.exception.DataValidationException;
+import com.intuit.businessprofilemanager.exception.RepositoryException;
 import com.intuit.businessprofilemanager.model.*;
 import com.intuit.businessprofilemanager.repository.BusinessProfileRepository;
-import com.intuit.businessprofilemanager.utils.AppMetrics;
+import com.intuit.businessprofilemanager.utils.ProfileUtil;
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import javax.persistence.EntityNotFoundException;
+import javax.persistence.PersistenceException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.intuit.businessprofilemanager.utils.ProfileUtil.*;
@@ -19,12 +24,12 @@ import static com.intuit.businessprofilemanager.utils.ProfileUtil.*;
 @Service
 @Slf4j
 public class BusinessProfileService implements IBusinessProfileService {
+    private final IValidationService validationService;
     private final BusinessProfileRepository repository;
-    private final AppMetrics metrics;
 
-    public BusinessProfileService(BusinessProfileRepository repository, AppMetrics metrics) {
+    public BusinessProfileService(IValidationService validationService, BusinessProfileRepository repository) {
+        this.validationService = validationService;
         this.repository = repository;
-        this.metrics = metrics;
     }
 
     /**
@@ -34,9 +39,16 @@ public class BusinessProfileService implements IBusinessProfileService {
      */
     @Override
     @Timed(value = "business-profile-manager.endpoint.create-profile.timer")
-    public String createProfile(BusinessProfile profile, List<String> products) {
-        ProfileEntity profileEntity = repository.saveAndFlush(getProfileEntity(profile, products));
-        return profileEntity.getId().toString();
+    public Long createProfile(BusinessProfile profile, List<String> products) {
+        ProfileEntity profileEntity;
+        try {
+            profileEntity = repository.saveAndFlush(getProfileEntity(profile, products));
+        } catch (PersistenceException e) {
+            String message = "Failure in persisting profile details";
+            log.error(message);
+            throw new RepositoryException(message);
+        }
+        return profileEntity.getId();
     }
 
     /**
@@ -47,82 +59,50 @@ public class BusinessProfileService implements IBusinessProfileService {
      */
     @Override
     @Timed(value = "business-profile-manager.endpoint.get-profile.timer")
-    public BusinessProfileEntity getProfile(String profileId) {
+    public BusinessProfileData getProfile(Long profileId) {
         ProfileEntity profileEntity;
         try {
-            profileEntity = repository.getReferenceById(Long.valueOf(profileId));
-            List<SubscriptionProducts> subscriptionProducts =
-                    profileEntity.getSubscriptionEntities().stream().map(subscriptionEntity -> SubscriptionProducts.builder().products(Collections.singletonList(subscriptionEntity.getProduct())).build()).collect(Collectors.toList());
-            List<TaxIdentifier> taxIdentifiers =
-                    profileEntity.getTaxIdentifiers().stream().map(taxIdentifiersEntity -> TaxIdentifier.builder().taxIdentifierNo(taxIdentifiersEntity.getTaxIdentifierNo()).taxIdentifierType(taxIdentifiersEntity.getTaxIdentifierType()).build()).collect(Collectors.toList());
-            return BusinessProfileEntity.builder()
-                    .profile(BusinessProfile.builder()
-                            .id(profileId)
-                            .companyName(profileEntity.getCompanyName())
-                            .legalName(profileEntity.getLegalName())
-                            .email(profileEntity.getEmail())
-                            .website(profileEntity.getWebsite())
-                            .legalAddress(getAddress(profileEntity.getLegalAddress()))
-                            .businessAddress(getAddress(profileEntity.getBusinessAddress()))
-                            .taxIdentifiers(taxIdentifiers)
-                            .build())
-                    .subscribedProducts(subscriptionProducts.stream()
-                            .flatMap(subscriptionProduct -> subscriptionProduct.getProducts().stream())
-                            .collect(Collectors.toList()))
-                    .build();
-        } catch (Exception e) {
-            log.error("The given profileId: {} doesn't exist or profileId is invalid", profileId);
-            metrics.incrementDataNotFoundCount();
-            throw new DataNotFoundException();
+            profileEntity = repository.getReferenceById(profileId);
+        } catch (EntityNotFoundException e) {
+            String message = String.format("The given profileId: %s doesn't exist or profileId is invalid", profileId);
+            log.error(message);
+            throw new DataNotFoundException(message);
+        } catch (PersistenceException e) {
+            String msg = String.format("An error occurred while attempting to read profile for profileId: %s.",
+                    profileId);
+            log.error(msg);
+            throw new RepositoryException(msg);
         }
-
+        return getBusinessProfileData(profileId, profileEntity);
     }
 
     /**
      * Updates the business profile associated with the given profileId and provides details about the updated profile.
      *
      * @param profileId The unique identifier of the business profile that is subscribed.
-     * @param profile   The business profile that needs to be updated.
+     * @param request   The business profile that needs to be updated.
      * @return Business profile details corresponding to the subscribed profile id that has been updated.
-     * @throws InvalidDataException if there's an issue with the provided data.
+     * @throws DataValidationException if there's an issue with the provided data.
      */
     @Override
     @Timed(value = "business-profile-manager.endpoint.update-profile.timer")
-    public BusinessProfileEntity updateProfile(String profileId, BusinessProfile profile) throws InvalidDataException {
-        Optional<ProfileEntity> existingProfileEntity;
+    public BusinessProfileData updateProfile(Long profileId, BusinessProfileUpdateRequest request) {
         try {
-            existingProfileEntity = repository.findById(Long.valueOf(profileId));
-            if (existingProfileEntity.isPresent()) {
-                ProfileEntity updatedProfileEntity = ProfileEntity.builder()
-                        .id(existingProfileEntity.get().getId())
-                        .legalName(profile.getLegalName())
-                        .companyName(profile.getCompanyName())
-                        .email(profile.getEmail())
-                        .website(profile.getWebsite())
-                        .businessAddress(getAddress(profile.getBusinessAddress(), AddressType.BUSINESS))
-                        .legalAddress(getAddress(profile.getLegalAddress(), AddressType.LEGAL))
-                        .subscriptionEntities(getSubscriptionEntities(profile.getSubscriptionProducts().get(0).getProducts()))
-                        .taxIdentifiers(getTaxIdentifiers(profile.getTaxIdentifiers()))
-                        .build();
-                repository.save(updatedProfileEntity);
-                return BusinessProfileEntity.builder()
-                        .profile(BusinessProfile.builder()
-                                .id(String.valueOf(updatedProfileEntity.getId()))
-                                .companyName(updatedProfileEntity.getCompanyName())
-                                .legalName(updatedProfileEntity.getLegalName())
-                                .website(updatedProfileEntity.getWebsite())
-                                .email(updatedProfileEntity.getEmail())
-                                .build())
-                        .build();
-            } else {
-                log.error("The profile with the provided ID: {} does not have an existing subscription to any products in the database.", profileId);
-                metrics.incrementDataNotFoundCount();
-                throw new DataNotFoundException();
-            }
-        } catch (NumberFormatException e) {
-            log.error("The profile with the provided ID: {} is not valid", profileId);
-            metrics.incrementInvalidDataExceptionCount();
-            throw new InvalidDataException();
+            ProfileEntity existingProfileEntity = repository.getReferenceById(profileId);
+            BusinessProfile profile = ProfileUtil.buildBusinessProfile(request, existingProfileEntity);
+            validateProfileWithProducts(profile);
+            ProfileEntity profileEntity = buildProfileEntity(profile, existingProfileEntity);
+            ProfileEntity updatedProfile = repository.save(profileEntity);
+            return buildBusinessProfileData(updatedProfile);
+        } catch (EntityNotFoundException e) {
+            String message = String.format("The given profileId: %s doesn't exist or profileId is invalid", profileId);
+            log.error(message);
+            throw new DataNotFoundException(message);
+        } catch (PersistenceException e) {
+            String msg = String.format("An error occurred while attempting to update profile for profileId: %s.",
+                    profileId);
+            log.error(msg);
+            throw new RepositoryException(msg);
         }
     }
 
@@ -134,15 +114,15 @@ public class BusinessProfileService implements IBusinessProfileService {
      */
     @Override
     @Timed(value = "business-profile-manager.endpoint.delete-profile.timer")
-    public boolean deleteProfile(String profileId) {
-        ProfileEntity profileEntity;
+    public boolean deleteProfile(Long profileId) {
         try {
-            profileEntity = repository.getReferenceById(Long.valueOf(profileId));
-            repository.deleteById(profileEntity.getId());
+            repository.deleteById(profileId);
             return true;
-        } catch (Exception e) {
-            metrics.incrementDataNotFoundCount();
-            throw new DataNotFoundException();
+        } catch (PersistenceException e) {
+            String msg = String.format("An error occurred while attempting to delete profile for profileId: %s.",
+                    profileId);
+            log.error(msg);
+            throw new RepositoryException(msg);
         }
     }
 
@@ -156,46 +136,66 @@ public class BusinessProfileService implements IBusinessProfileService {
      */
     @Override
     @Timed(value = "business-profile-manager.endpoint.update-subscription.timer")
-    public BusinessProfile updateSubscription(String profileId, List<String> tobeSubscribedProducts) {
+    public BusinessProfile updateSubscription(Long profileId, List<String> tobeSubscribedProducts) {
         ProfileEntity existingProfileEntity;
         try {
-            existingProfileEntity = repository.getReferenceById(Long.valueOf(profileId));
-            Set<String> existingProducts = existingProfileEntity.getSubscriptionEntities().stream()
-                    .map(SubscriptionEntity::getProduct)
-                    .collect(Collectors.toSet());
+            existingProfileEntity = repository.getReferenceById(profileId);
+            updateWithNewSubscriptions(tobeSubscribedProducts, existingProfileEntity);
 
-            Set<String> tobeSubscribedProductSet = new HashSet<>(tobeSubscribedProducts);
-            existingProducts.addAll(tobeSubscribedProductSet);
+            validateProfileWithProducts(ProfileUtil.buildBusinessProfile(existingProfileEntity,
+                    tobeSubscribedProducts));
 
-            Set<SubscriptionEntity> updatedSubscriptionEntities = existingProducts.stream()
-                    .map(product -> SubscriptionEntity.builder().product(product).build())
-                    .collect(Collectors.toSet());
-
+            Set<SubscriptionEntity> updatedSubscriptionEntities = getUpdatedSubscriptionEntities(tobeSubscribedProducts,
+                    existingProfileEntity);
             existingProfileEntity.setSubscriptionEntities(updatedSubscriptionEntities);
-
             ProfileEntity updatedEntity = repository.save(existingProfileEntity);
-            List<SubscriptionProducts> subscriptionProducts = Collections.singletonList(SubscriptionProducts.builder()
-                    .products(tobeSubscribedProducts)
-                    .build());
-            List<TaxIdentifier> taxIdentifiers =
-                    updatedEntity.getTaxIdentifiers().stream().map(taxIdentifiersEntity -> TaxIdentifier.builder().taxIdentifierNo(taxIdentifiersEntity.getTaxIdentifierNo()).taxIdentifierType(taxIdentifiersEntity.getTaxIdentifierType()).build()).collect(Collectors.toList());
-            return BusinessProfile.builder()
-                    .id(profileId)
-                    .legalName(updatedEntity.getLegalName())
-                    .companyName(updatedEntity.getCompanyName())
-                    .id(String.valueOf(updatedEntity.getId()))
-                    .businessAddress(getAddress(updatedEntity.getBusinessAddress()))
-                    .legalAddress(getAddress(updatedEntity.getLegalAddress()))
-                    .taxIdentifiers(taxIdentifiers)
-                    .website(updatedEntity.getWebsite())
-                    .email(updatedEntity.getEmail())
-                    .subscriptionProducts(subscriptionProducts)
-                    .build();
-        } catch (Exception e) {
-            log.error("The given profileId: {} doesn't exist or profileId is invalid. Exception: {}", profileId, e.getMessage());
-            metrics.incrementDataNotFoundCount();
-            throw new DataNotFoundException();
+            return buildBusinessProfile(profileId, tobeSubscribedProducts, updatedEntity);
+        } catch (EntityNotFoundException e) {
+            String message = String.format("The given profileId: %s doesn't exist or profileId is invalid", profileId);
+            log.error(message);
+            throw new DataNotFoundException(message);
+        } catch (PersistenceException e) {
+            String msg = String.format("An error occurred while attempting to update subscription for profileId: %s.",
+                    profileId);
+            log.error(msg);
+            throw new RepositoryException(msg);
         }
+    }
 
+    /**
+     * validates against all products and throws exception if validation fails
+     *
+     * @param profile todo update
+     */
+    private void validateProfileWithProducts(BusinessProfile profile) {
+        List<ValidationResponse> responses = validationService.validate(profile,
+                profile.getSubscriptionProducts().getProducts());
+        List<ValidationResponse> validationFailedResponses = responses.stream()
+                .filter(response -> response.getStatus() == ValidationStatus.FAILED)
+                .collect(Collectors.toList());
+        if (!validationFailedResponses.isEmpty()) {
+            throw new DataValidationException(validationFailedResponses);
+        }
+    }
+
+    private void updateWithNewSubscriptions(List<String> tobeSubscribedProducts,
+                                            ProfileEntity existingProfileEntity) {
+        tobeSubscribedProducts.removeAll(existingProfileEntity.getSubscriptionEntities().stream()
+                .map(SubscriptionEntity::getProduct)
+                .collect(Collectors.toSet())
+        );
+    }
+
+    private Set<SubscriptionEntity> getUpdatedSubscriptionEntities(List<String> tobeSubscribedProducts,
+                                                                   ProfileEntity existingProfileEntity) {
+        Set<String> existingProducts = existingProfileEntity.getSubscriptionEntities().stream()
+                .map(SubscriptionEntity::getProduct)
+                .collect(Collectors.toSet());
+        Set<String> tobeSubscribedProductSet = new HashSet<>(tobeSubscribedProducts);
+        existingProducts.addAll(tobeSubscribedProductSet);
+
+        return existingProducts.stream()
+                .map(product -> SubscriptionEntity.builder().product(product).build())
+                .collect(Collectors.toSet());
     }
 }

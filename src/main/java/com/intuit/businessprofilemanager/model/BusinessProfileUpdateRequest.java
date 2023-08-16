@@ -13,10 +13,8 @@ import java.util.List;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class BusinessProfile {
+public class BusinessProfileUpdateRequest {
 
-    @NotNull
-    private Long id;
     @NotBlank
     @Size(min = 5, max = 100)
     private String companyName;
@@ -34,6 +32,4 @@ public class BusinessProfile {
     private String email;
     @Pattern(regexp = "^(http:\\/\\/|https:\\/\\/)?(www\\.)?([a-zA-Z0-9]+)\\.[a-zA-Z0-9]*\\.[a-z]{3}\\.?([a-z]+)?$")
     private String website;
-    @NotNull
-    private SubscriptionProducts subscriptionProducts;
 }

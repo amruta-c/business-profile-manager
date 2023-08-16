@@ -12,7 +12,7 @@ import java.util.List;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class BusinessProfileEntity {
+public class BusinessProfileData {
     private BusinessProfile profile;
     private List<String> subscribedProducts;
 }

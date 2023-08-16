@@ -1,19 +1,19 @@
 package com.intuit.businessprofilemanager.service;
 
-import com.intuit.businessprofilemanager.exception.InvalidDataException;
 import com.intuit.businessprofilemanager.model.BusinessProfile;
-import com.intuit.businessprofilemanager.model.BusinessProfileEntity;
+import com.intuit.businessprofilemanager.model.BusinessProfileData;
+import com.intuit.businessprofilemanager.model.BusinessProfileUpdateRequest;
 
 import java.util.List;
 
 public interface IBusinessProfileService {
-    String createProfile(BusinessProfile profile, List<String> products);
+    Long createProfile(BusinessProfile profile, List<String> products);
 
-    BusinessProfileEntity getProfile(String profileId);
+    BusinessProfileData getProfile(Long profileId);
 
-    BusinessProfileEntity updateProfile(String profileId, BusinessProfile profile) throws InvalidDataException;
+    BusinessProfileData updateProfile(Long profileId, BusinessProfileUpdateRequest profile);
 
-    boolean deleteProfile(String profileId);
+    boolean deleteProfile(Long profileId);
 
-    BusinessProfile updateSubscription(String profileId, List<String> subscriptions);
+    BusinessProfile updateSubscription(Long profileId, List<String> subscriptions);
 }

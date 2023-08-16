@@ -30,12 +30,7 @@ public class SubscriptionController {
      */
     @PostMapping("/subscribe")
     public ResponseEntity<SubscriptionResponse> subscribe(@RequestBody @Valid SubscriptionRequest request) {
-        SubscriptionResponse response = subscriptionService.subscribe(request);
-        if ((response.getErrorResponse() != null) && (response.getErrorResponse().getResponseCode() != null)) {
-            return ResponseEntity.status(response.getErrorResponse().getResponseCode()).body(response);
-        }
-        log.info("Business profile is validated and subscribed successfully");
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(subscriptionService.subscribe(request));
     }
 
     /**
@@ -47,7 +42,7 @@ public class SubscriptionController {
      * @return ResponseEntity containing the subscribed profileId along with a message pertinent to the subscription outcome.
      */
     @PostMapping("/profiles/{profile_id}/subscribe")
-    public ResponseEntity<SubscriptionResponse> subscribe(@PathVariable(name = "profile_id") String profileId,
+    public ResponseEntity<SubscriptionResponse> subscribe(@PathVariable(name = "profile_id") Long profileId,
                                                           @RequestBody @Valid SubscriptionProducts products) {
         return ResponseEntity.ok(subscriptionService.subscribe(profileId, products));
     }
@@ -61,7 +56,7 @@ public class SubscriptionController {
      * @return ResponseEntity containing the unsubscribed profileId along with a message relevant to the unsubscription status.
      */
     @PostMapping("/profiles/{profile_id}/unsubscribe")
-    public ResponseEntity<UnsubscriptionResponse> unsubscribe(@PathVariable(name = "profile_id") String profileId,
+    public ResponseEntity<UnsubscriptionResponse> unsubscribe(@PathVariable(name = "profile_id") Long profileId,
                                                               @RequestBody @Valid UnsubscriptionRequest request) {
         return ResponseEntity.ok(subscriptionService.unsubscribe(profileId, request));
     }

@@ -2,6 +2,7 @@ package com.intuit.businessprofilemanager.client;
 
 import com.intuit.businessprofilemanager.exception.ValidationApiFailureException;
 import com.intuit.businessprofilemanager.model.BusinessProfile;
+import com.intuit.businessprofilemanager.model.ValidationRequest;
 import com.intuit.businessprofilemanager.model.ValidationResponse;
 import com.intuit.businessprofilemanager.model.ValidationStatus;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -11,10 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.ExecutionException;
 
 @Service
 @Slf4j
@@ -31,31 +32,29 @@ public class ValidationClient {
     @CircuitBreaker(name = "validationCircuit", fallbackMethod = "fallbackValidation")
     @Retry(name = "validationRetry")
     @Timed(value = "business-profile-manager.validation-api.timer")
-    public ResponseEntity<ValidationResponse> callValidationApi(BusinessProfile request, String product) throws ExecutionException {
+    public ResponseEntity<ValidationResponse> callValidationApi(BusinessProfile profile, String product) {
         String url = apiTitleUrl + "/validate";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        BusinessProfile requestDTO = BusinessProfile.builder()
-                .legalName(request.getLegalName())
-                .companyName(request.getCompanyName())
-                .legalAddress(request.getLegalAddress())
-                .businessAddress(request.getBusinessAddress())
-                .email(request.getEmail())
-                .website(request.getWebsite())
-                .taxIdentifiers(request.getTaxIdentifiers())
+        ValidationRequest requestDTO = ValidationRequest.builder()
+                .businessProfile(profile)
                 .product(product)
                 .build();
 
-        HttpEntity<BusinessProfile> requestEntity = new HttpEntity<>(requestDTO, headers);
+        HttpEntity<ValidationRequest> requestEntity = new HttpEntity<>(requestDTO, headers);
 
         try {
             log.info("Making request to validation API: {} at: {}", url, LocalDateTime.now());
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, requestEntity, String.class);
             return createResponseEntity(responseEntity.getStatusCode(), responseEntity.getBody());
-        } catch (ValidationApiFailureException e) {
-            throw new ValidationApiFailureException();
+        } catch (RestClientException e) {
+            String message = String.format(
+                    "Validation API encountered an issue with the provided product : %s and profileId : %s",
+                    product, profile.getId());
+            log.error(message);
+            throw new ValidationApiFailureException(message);
         }
     }
 
@@ -65,6 +64,7 @@ public class ValidationClient {
     }
 
     private ResponseEntity<ValidationResponse> createResponseEntity(HttpStatus status, String validationMessage) {
+        //todo parse validationMessage to response object
         return ResponseEntity.status(status)
                 .body(ValidationResponse.builder()
                         .status(status.is2xxSuccessful() ? ValidationStatus.SUCCESSFUL : ValidationStatus.FAILED)

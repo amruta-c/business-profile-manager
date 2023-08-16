@@ -11,7 +11,6 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class SubscriptionResponse {
-    private String profileId;
+    private Long profileId;
     private String message;
-    private ErrorResponse errorResponse;
 }

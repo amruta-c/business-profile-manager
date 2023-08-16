@@ -1,13 +1,14 @@
 package com.intuit.businessprofilemanager.service;
 
+import com.intuit.businessprofilemanager.exception.DataValidationException;
 import com.intuit.businessprofilemanager.model.*;
 import com.intuit.businessprofilemanager.utils.AppMetrics;
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -32,20 +33,19 @@ public class SubscriptionService implements ISubscriptionService {
     @Override
     @Timed(value = "business-profile-manager.endpoint.subscribe.timer")
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
-        ValidationResponse validationResponse = validationService.validate(request.getProfile(), request.getProducts());
-        if (validationResponse.getStatus() == ValidationStatus.FAILED) {
-            return new SubscriptionResponse(null, validationResponse.getValidationMessage(),
-                    ErrorResponse.builder()
-                            .responseCode(HttpStatus.valueOf(validationResponse.getStatusCode().value()))
-                            .responseMessage(validationResponse.getValidationMessage())
-                            .responseDetail("Either the validation API is currently unavailable, or the subscription request provided is invalid. Please review the entered request that requires subscription.")
-                            .build());
+        List<ValidationResponse> validationResponses = validationService.validate(request.getProfile(),
+                request.getProducts());
+        List<ValidationResponse> validationFailedProducts = validationResponses.stream()
+                .filter(validationResponse -> validationResponse.getStatus() == ValidationStatus.FAILED)
+                .collect(Collectors.toList());
+        if (!validationFailedProducts.isEmpty()) {
+            throw new DataValidationException(validationFailedProducts);
         }
 
-        String profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
+        Long profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
         log.info("Business profile with profileId: {} has been subscribed successfully", profileId);
         metrics.incrementSubscriptionCount();
-        return new SubscriptionResponse(profileId, "Business profile is validated and subscribed successfully", null);
+        return new SubscriptionResponse(profileId, "Business profile is validated and subscribed successfully");
     }
 
     /**
@@ -58,12 +58,12 @@ public class SubscriptionService implements ISubscriptionService {
 
     @Override
     @Timed(value = "business-profile-manager.endpoint.subscribe-products.timer")
-    public SubscriptionResponse subscribe(String profileId, SubscriptionProducts subscriptionsRequested) {
+    public SubscriptionResponse subscribe(Long profileId, SubscriptionProducts subscriptionsRequested) {
         List<String> tobeSubscribedProducts = subscriptionsRequested.getProducts();
         BusinessProfile updatedProfile = businessProfileService.updateSubscription(profileId, tobeSubscribedProducts);
         log.info("ProfileId: {} has been subscribed to the products: {} successfully", profileId, subscriptionsRequested.getProducts().toString());
         metrics.incrementSubscriptionCount();
-        return new SubscriptionResponse(profileId, "Subscribed to the products: " + updatedProfile.getSubscriptionProducts().get(0).getProducts(), null);
+        return new SubscriptionResponse(profileId, "Subscribed to the products: " + updatedProfile.getSubscriptionProducts().getProducts());
     }
 
     /**
@@ -75,7 +75,15 @@ public class SubscriptionService implements ISubscriptionService {
      */
     @Override
     @Timed(value = "business-profile-manager.endpoint.unsubscribe.timer")
-    public UnsubscriptionResponse unsubscribe(String profileId, UnsubscriptionRequest request) {
+    public UnsubscriptionResponse unsubscribe(Long profileId, UnsubscriptionRequest request) {
+
+        // todo not in requirement,
+        /**
+         *  sub repo .getall sub
+         *  sub repo .delet
+         *  if empty sub then mark it as inactive.
+         *  add active in create and update and subscribe()
+         */
         boolean isUnsubscribeSuccessful = businessProfileService.deleteProfile(profileId);
         if (isUnsubscribeSuccessful) {
             log.info("ProfileId: {} has been successfully unsubscribed.", profileId);

@@ -15,6 +15,7 @@ public class AppMetrics {
     private final Counter validationApiFailureCount;
     private final Counter invalidDataExceptionCount;
     private final Counter dataNotFoundExceptionCount;
+    private final Counter repositoryExceptionCount;
     private final Counter totalSubscriptionCount;
     private final Counter totalUnsubscriptionCount;
 
@@ -22,8 +23,12 @@ public class AppMetrics {
         this.meterRegistry = meterRegistry;
         validationApiSuccessCount = meterRegistry.counter("business-profile-manager.validation.success.count");
         validationApiFailureCount = meterRegistry.counter("business-profile-manager.validation.failure.count");
-        invalidDataExceptionCount = meterRegistry.counter("business-profile-manager.validation.invalid-data-exception.count");
-        dataNotFoundExceptionCount = meterRegistry.counter("business-profile-manager.db-search.data-not-found-exception.count");
+        invalidDataExceptionCount = meterRegistry.counter(
+                "business-profile-manager.validation.invalid-data-exception.count");
+        dataNotFoundExceptionCount = meterRegistry.counter(
+                "business-profile-manager.db-search.data-not-found-exception.count");
+        repositoryExceptionCount = meterRegistry.counter(
+                "business-profile-manager.db-search.repository-exception.count");
         totalSubscriptionCount = meterRegistry.counter("business-profile-manager.endpoint.total-subscription.count");
         totalUnsubscriptionCount = meterRegistry.counter("business-profile-manager.endpoint.total-unsubscription.count");
     }
@@ -47,6 +52,10 @@ public class AppMetrics {
 
     public void incrementDataNotFoundCount() {
         this.dataNotFoundExceptionCount.increment();
+    }
+
+    public void incrementRepositoryExceptionCount() {
+        this.repositoryExceptionCount.increment();
     }
 
     public void incrementSubscriptionCount() {

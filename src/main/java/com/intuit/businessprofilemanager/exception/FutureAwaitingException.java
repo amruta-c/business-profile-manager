@@ -1,7 +1,7 @@
 package com.intuit.businessprofilemanager.exception;
 
 public class FutureAwaitingException extends RuntimeException {
-    public FutureAwaitingException() {
-        super();
+    public FutureAwaitingException(String message) {
+        super(message);
     }
 }

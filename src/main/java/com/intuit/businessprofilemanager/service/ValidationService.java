@@ -2,12 +2,10 @@ package com.intuit.businessprofilemanager.service;
 
 import com.intuit.businessprofilemanager.client.ValidationClient;
 import com.intuit.businessprofilemanager.exception.FutureAwaitingException;
-import com.intuit.businessprofilemanager.exception.ValidationApiFailureException;
 import com.intuit.businessprofilemanager.model.BusinessProfile;
 import com.intuit.businessprofilemanager.model.ValidationResponse;
-import com.intuit.businessprofilemanager.model.ValidationStatus;
 import com.intuit.businessprofilemanager.utils.AppMetrics;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ValidationService implements IValidationService {
 
@@ -28,74 +27,33 @@ public class ValidationService implements IValidationService {
     }
 
     @Override
-    public ValidationResponse validate(BusinessProfile profile, List<String> products) {
+    public List<ValidationResponse> validate(BusinessProfile profile, List<String> products) {
         List<CompletableFuture<ValidationResponse>> validationFutures = products.stream()
                 .map(product -> CompletableFuture.supplyAsync(() -> validateProduct(profile, product)))
                 .collect(Collectors.toList());
 
-        CompletableFuture<Void> allOf = CompletableFuture.allOf(validationFutures.toArray(new CompletableFuture[0]));
-
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                validationFutures.toArray(new CompletableFuture[products.size()])
+        );
+        CompletableFuture<List<ValidationResponse>> futures = allFutures.thenApply(v ->
+                validationFutures.stream().map(CompletableFuture::join).collect(Collectors.toList())); // Wait
+        List<ValidationResponse> responses;
         try {
-            allOf.get(); // Wait for all validation futures to complete
+            responses = futures.get();
+            metrics.incrementValidationApiSuccessCount();
         } catch (InterruptedException | ExecutionException e) {
-            throw new FutureAwaitingException();
+            String message = String.format(
+                    "An exception occurred while trying to perform validation for profileId : %s and products : %s",
+                    profile.getId(), products);
+            log.error(message, e);
+            throw new FutureAwaitingException(message);
         }
-
-        List<ValidationResponse> validationResponses = validationFutures.stream()
-                .map(this::getValidationResponse)
-                .collect(Collectors.toList());
-
-        // Aggregate and return validation responses
-        return aggregateValidationResponses(validationResponses);
+        return responses;
     }
 
     private ValidationResponse validateProduct(BusinessProfile profile, String product) {
-        try {
-            ResponseEntity<ValidationResponse> validationResponse = validationClient.callValidationApi(profile, product);
-            return validationResponse.getBody();
-        } catch (ValidationApiFailureException | ExecutionException ex) {
-            metrics.incrementValidationApiFailureCount();
-            throw new ValidationApiFailureException();
-        }
-    }
-
-    private ValidationResponse getValidationResponse(CompletableFuture<ValidationResponse> future) {
-        try {
-            return future.get(); // Retrieve the result of each validation future
-        } catch (InterruptedException | ExecutionException e) {
-            return ValidationResponse.builder()
-                    .status(ValidationStatus.FAILED)
-                    .statusCode(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .validationMessage("Exception occurred while processing: " + e.getMessage())
-                    .build();
-        }
-    }
-
-    private ValidationResponse aggregateValidationResponses(List<ValidationResponse> responses) {
-        boolean hasFailedResponse = responses.stream()
-                .anyMatch(response -> response.getStatus() == ValidationStatus.FAILED);
-
-        HttpStatus aggregatedStatus = hasFailedResponse ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK;
-
-        if (hasFailedResponse) {
-            metrics.incrementValidationApiFailureCount();
-            return ValidationResponse.builder()
-                    .status(ValidationStatus.FAILED)
-                    .statusCode(aggregatedStatus)
-                    .validationMessage("Validation failed for one or more products")
-                    .build();
-        } else {
-            StringBuilder summaryMessage = new StringBuilder();
-            for (ValidationResponse response : responses) {
-                summaryMessage.append(response.getValidationMessage()).append("\n");
-            }
-            metrics.incrementValidationApiSuccessCount();
-            return ValidationResponse.builder()
-                    .status(ValidationStatus.SUCCESSFUL)
-                    .statusCode(aggregatedStatus)
-                    .validationMessage(summaryMessage.toString())
-                    .build();
-        }
+        ResponseEntity<ValidationResponse> validationResponse = validationClient.callValidationApi(profile, product);
+        return validationResponse.getBody();
     }
 
 }
