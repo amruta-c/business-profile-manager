@@ -30,7 +30,7 @@ public class ApiExceptionMapper extends ResponseEntityExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .responseCode(HttpStatus.EXPECTATION_FAILED)
                 .responseMessage("Data validation failed")
-                .responseDetail(getFailedValidationErrorDetail(e.failedValidationResponses))
+                .responseDetail(getFailedValidationErrorDetail(e.getFailedValidationResponses()))
                 .build();
         return new ResponseEntity<>(errorResponse, HttpStatus.EXPECTATION_FAILED);
     }

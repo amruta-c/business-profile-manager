@@ -11,4 +11,8 @@ public class DataValidationException extends RuntimeException {
         super();
         this.failedValidationResponses = failedValidationResponses;
     }
+
+    public List<ValidationResponse> getFailedValidationResponses() {
+        return failedValidationResponses;
+    }
 }

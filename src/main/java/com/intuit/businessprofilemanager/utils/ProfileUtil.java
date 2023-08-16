@@ -28,19 +28,6 @@ public class ProfileUtil {
                 .build();
     }
 
-    public static ProfileEntity getProfileEntity(BusinessProfile profile) {
-        return ProfileEntity.builder()
-                .companyName(profile.getCompanyName())
-                .legalName(profile.getLegalName())
-                .email(profile.getEmail())
-                .website(profile.getWebsite())
-                .businessAddress(getAddress(profile.getBusinessAddress(), AddressType.BUSINESS))
-                .legalAddress(getAddress(profile.getLegalAddress(), AddressType.LEGAL))
-                .taxIdentifiers(getTaxIdentifiers(profile.getTaxIdentifiers()))
-                .subscriptionEntities(getSubscriptionEntities(profile.getSubscriptionProducts().getProducts()))
-                .build();
-    }
-
     public static Set<SubscriptionEntity> getSubscriptionEntities(List<String> products) {
         return products.stream().map(product -> SubscriptionEntity.builder()
                 .product(product)

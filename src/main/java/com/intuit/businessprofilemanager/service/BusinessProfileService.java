@@ -145,8 +145,9 @@ public class BusinessProfileService implements IBusinessProfileService {
             validateProfileWithProducts(ProfileUtil.buildBusinessProfile(existingProfileEntity,
                     tobeSubscribedProducts));
 
-            Set<SubscriptionEntity> updatedSubscriptionEntities = getUpdatedSubscriptionEntities(tobeSubscribedProducts,
-                    existingProfileEntity);
+            Set<SubscriptionEntity> updatedSubscriptionEntities =
+                    getUpdatedSubscriptionEntities(tobeSubscribedProducts,
+                            existingProfileEntity);
             existingProfileEntity.setSubscriptionEntities(updatedSubscriptionEntities);
             ProfileEntity updatedEntity = repository.save(existingProfileEntity);
             return buildBusinessProfile(profileId, tobeSubscribedProducts, updatedEntity);
