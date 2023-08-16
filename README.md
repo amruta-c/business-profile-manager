@@ -1,195 +1,304 @@
-> # Business-profile-manager
+# Business Profile Manager
 
-Sample profile updater service does validate Business profile data before updating data to DB.
-This validation has to be done by all Quick book products i.e
-* Timesheet
-* Accounts
-* Payments
-* Payroll
+Business Profile Manager is a comprehensive profile updater service that offers data validation before updating business
+profile information in the database. The validation process is essential for all QuickBooks products, including
+Timesheet, Accounts, Payments, and Payroll.
 
-### How it works
+## Overview
 
-The application uses Spring boot application.
+This application utilizes the Spring Boot framework to facilitate its operations.
 
-### Database
+## Database
 
-It uses mySQL in memory database (for now), can be changed easily in the `application.properties` for any other database.
+Currently, the system employs an in-memory MySQL database. However, you can effortlessly configure an alternate database
+by adjusting settings in the `application.properties` file.
 
-### Getting started
+## Getting Started
 
-You need Java 11 installed.
+Before proceeding, ensure you have Java 11 installed on your system.
 
-    ./gradlew clean build
+To build the project and generate a JAR file, execute the following commands:
 
-    java -jar target/business-profile-manager-0.0.1-SNAPSHOT.jar
-
-### Run test
-
-    ./gradlew test
-
-### Data base
-
-* mySQL DB - jdbc:mysql://localhost:3306/profile_db
-* DB schema can be found in /resources/data.sql
-
-To re-configure DB change configuration in application.properties file
-
-### Services
-
-This validation is done by using `resources/validationData.json` file which has validation configuration for each of the products.
-validation configuration includes regular expression for each of the fields categorized by products.
-
-* These services are to validate business profile data for every QB product individually
-
-    * POST /validate/accounting
-    * POST /validate/payroll
-    * POST /validate/payments
-    * POST /validate/timesheet
-
-  Request:
- ```
-      {
-        "companyName": "abc",
-        "legalName": "abc",
-        "businessAddress": {
-            "line1": "main1",
-            "line2": "a",
-            "city": "blr",
-            "state": "KAR",
-            "zip": "560066",
-            "country": "IN"
-        },
-        
-        "legalAddress": {
-            "line1": "main1",
-            "line2": "a",
-            "city": "blr",
-            "state": "KAR",
-            "zip": "560066",
-            "country": "IN"
-        },
-        "taxID": "ANYPL296",
-        "email": "lavap@sabre.com",
-        "website": "www.intuit.com"
-      }
-  ```
-Response:
-  ```
-  {
-      "status": "SUCCESS",
-      "message": "Data is valid. validation done by accounting product"
-  }
-  ```
-
-* This service is to validate data against multiple Quick books product
-    * POST /validate
-
-  Example: at a shot we are validate profile data against payroll and accounting product.
-
-Request:
+```bash
+./gradlew clean build
 ```
+
+To launch the application, use:
+
+```bash
+java -jar target/business-profile-manager-0.0.1-SNAPSHOT.jar
+```
+
+### Running Tests
+
+For running tests, utilize the following command:
+
+```bash
+./gradlew test
+```
+
+### Database Configuration
+
+By default, the application connects to a MySQL database with the following connection string:
+
+```bash
+jdbc:mysql://localhost:3306/profile_db
+```
+
+You can modify the database configuration by adjusting settings in the `application.properties` file.
+
+## Available Services
+
+The Business Profile Manager service provides the following essential endpoints for managing business profiles and
+validations:
+
+### Validate Business Profile Data
+
+This service validates business profile data for each QuickBooks product.
+
+* Endpoint: `POST /validate`
+
+#### Request:
+
+```json
 {
-   "businessProfile":{
-	"companyName": "abc",
-	"legalName": "abc",
-	"businessAddress": {
-		"line1": "main1",
-		"line2": "a",
-		"city": "blr",
-		"state": "",
-		"zip": "560066",
-		"country": "IN"
-	},
-	
-	"legalAddress": {
-		"line1": "main1",
-		"line2": "a",
-		"city": "blr",
-		"state": "KAR",
-		"zip": "560066",
-		"country": "IN"
-	},
-	"taxID": "ANYPL2911R",
-	"email": "lavap@s.com",
-	"website": "www.intuit.com"
-   },
-   "products": ["accounting", "payroll"]
-}
-```
-
-Response:
-```
-{
-    "status": "SUCCESS",
-    "validationResponse": {
-        "accounting": {
-            "status": "SUCCESS",
-            "message": "Data is valid. validation done by accounting product"
-        },
-        "payroll": {
-            "status": "SUCCESS",
-            "message": "Data is valid. validation done by payroll product"
-        }
+  "company_name": "test",
+  "legal_name": "testLegal",
+  "business_address": {
+    "line1": "main1",
+    "line2": "line2",
+    "city": "blr",
+    "state": "KAR",
+    "zip": "560066",
+    "country": "IN"
+  },
+  "legal_address": {
+    "line1": "main1",
+    "line2": "line2",
+    "city": "blr",
+    "state": "KAR",
+    "zip": "560066",
+    "country": "IN"
+  },
+  "tax_identifiers": [
+    {
+      "tax_identifier_type": "PAN",
+      "tax_identifier_no": "CVZZ17P32P"
     }
+  ],
+  "email": "test@test.com",
+  "website": "www.test.com",
+  "product": "accounting"
 }
 ```
 
-* This service is to validate data against already subscribed products and also products to which subscription is being requested.
-  If validation is accepted by all products than data is updated to DB.
+#### Response:
 
-    * POST /subscribe
-
-  Request:
-```
-  {
-     "businessProfile":{
-  	"companyName": "abc",
-  	"legalName": "abc",
-  	"businessAddress": {
-  		"line1": "main1",
-  		"line2": "a",
-  		"city": "blr",
-  		"state": "KAR",
-  		"zip": "560066",
-  		"country": "IN"
-  	},
-  	
-  	"legalAddress": {
-  		"line1": "main1",
-  		"line2": "a",
-  		"city": "blr",
-  		"state": "KAR",
-  		"zip": "560066",
-  		"country": "IN"
-  	},
-  	"taxID": "ANYPL290R",
-  	"email": "lavap@sabre.com",
-  	"website": "www.intuit.com"
-     },
-     "products": ["accounting", "payroll"]
-  }
-```
-
-Response:
-
-```
+```json
 {
-    "status": "SUCCESS",
-    "message": "Business profile is updated and also subscription list",
-    "batchValidationResponse": {
-        "status": "SUCCESS",
-        "validationResponse": {
-            "accounting": {
-                "status": "SUCCESS",
-                "message": "Data is valid. validation done by accounting product"
-            },
-            "payroll": {
-                "status": "SUCCESS",
-                "message": "Data is valid. validation done by payroll product"
-            }
-        }
-    },
-    "texID": "ANYPL2966R"
+  "productId": "accounting",
+  "status": "SUCCESSFUL",
+  "validationMessage": "Data is valid. Validation done by accounting product"
 }
 ```
+
+### Subscribe to Products
+
+This service validates data against a business profile and subscribes to requested products if validation is successful.
+
+* Endpoint: `POST /subscribe`
+
+#### Request:
+
+```json
+{
+  "profile": {
+    "company_name": "test",
+    "legal_name": "testLegal",
+    "business_address": {
+      "line1": "main1",
+      "line2": "a",
+      "city": "blr",
+      "state": "KAR",
+      "zip": "560066",
+      "country": "IN"
+    },
+    "legal_address": {
+      "line1": "main1",
+      "line2": "a",
+      "city": "blr",
+      "state": "KAR",
+      "zip": "560066",
+      "country": "IN"
+    },
+    "tax_identifiers": [
+      {
+        "tax_identifier_type": "PAN",
+        "tax_identifier_no": "CVZZ17P32P"
+      },
+      {
+        "tax_identifier_type": "EAN",
+        "tax_identifier_no": "ABC2376387"
+      }
+    ],
+    "email": "test@test.com",
+    "website": "www.test.com"
+  },
+  "products": [
+    "TTracking",
+    "Payment"
+  ]
+}
+```
+
+#### Response:
+
+```json
+{
+  "profile_id": "8",
+  "message": "Business profile is validated and subscribed successfully"
+}
+```
+
+### Update Subscriptions
+
+This service allows updating subscriptions for an already subscribed profile.
+
+* Endpoint: `POST /profiles/{profile_id}/subscribe`
+
+#### Request:
+
+```json
+{
+  "products": [
+    "QBO",
+    "Payroll"
+  ]
+}
+```
+
+#### Response:
+
+```json
+{
+  "profile_id": "6",
+  "message": "Subscribed to the products: [QBO, Payroll]"
+}
+```
+
+### Fetch Profile Details
+
+This service retrieves details for an already subscribed profile.
+
+* Endpoint: `GET /profiles/{profile_id}`
+
+#### Response:
+
+```json
+{
+  "profile": {
+    "id": "2",
+    "company_name": "test",
+    "legal_name": "testLegal",
+    "business_address": {
+      "line1": "main1",
+      "line2": "a",
+      "city": "blr",
+      "state": "KAR",
+      "zip": "560066",
+      "country": "IN"
+    },
+    "legal_address": {
+      "line1": "main1",
+      "line2": "a",
+      "city": "blr",
+      "state": "KAR",
+      "zip": "560066",
+      "country": "IN"
+    },
+    "tax_identifiers": [
+      {
+        "tax_identifier_type": "EAN",
+        "tax_identifier_no": "ABC2376387"
+      },
+      {
+        "tax_identifier_type": "PAN",
+        "tax_identifier_no": "CVZZ17P32P"
+      }
+    ],
+    "email": "test@test.com",
+    "website": "www.test.com"
+  },
+  "subscribed_products": [
+    "QBO"
+  ]
+}
+```
+
+### Update Profile Details
+
+This service updates profile details for an already subscribed profile.
+
+* Endpoint: `PUT /profiles/{profile_id}`
+
+#### Request:
+
+```json
+{
+  "company_name": "test2",
+  "legal_name": "testLegal2",
+  "business_address": {
+    "line1": "main2",
+    "line2": "a",
+    "city": "blr",
+    "state": "KAR",
+    "zip": "560066",
+    "country": "IN"
+  },
+  "legal_address": {
+    "line1": "main2",
+    "line2": "a",
+    "city": "blr",
+    "state": "KAR",
+    "zip": "560066",
+    "country": "IN"
+  },
+  "tax_identifiers": [
+    {
+      "tax_identifier_type": "PAN",
+      "tax_identifier_no": "CVZZ17P32P"
+    }
+  ],
+  "email": "test2@test.com",
+  "website": "www.test.com",
+  "subscription_products": [
+    {
+      "products": [
+        "QBO",
+        "PayRoll"
+      ]
+    }
+  ]
+}
+```
+
+#### Response:
+
+```json
+{
+  "profile": {
+    "id": "1",
+    "companyName": "test2",
+    "legalName": "testLegal2",
+    "email": "test2@test.com",
+    "website": "www.test.com"
+  }
+}
+```
+
+### Conclusion
+
+The Business Profile Manager provides a powerful set of services to manage, validate, and update business profiles
+seamlessly. It leverages modern technologies and best practices ensuring efficient and accurate operations for your
+QuickBooks products.
 
