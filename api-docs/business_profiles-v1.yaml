@@ -1,0 +1,196 @@
+swagger: '2.0'
+info:
+  title: business_profiles-v1
+  version: 1.0.0
+  description: Business Profile Validation and Subscription API
+host: localhost:8080
+basePath: /
+produces:
+  - application/json
+paths:
+  /profile/{profileId}:
+    put:
+      summary: Get Business Profile details
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/BusinessProfileEntity'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/BusinessProfileEntity'
+    get:
+      summary: Get Business Profile details
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          type: integer
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/BusinessProfileEntity'
+
+  /subscribe:
+    post:
+      summary: Subscribe Business Profile to Products
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/SubscriptionRequest'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/SubscriptionResponse'
+  /profile/{profileId}/subscribe:
+    post:
+      summary: Subscribe Business Profile to Products
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/SubscriptionRequest'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/SubscriptionResponse'
+  /profile/{profileId}/unsubscribe:
+    post:
+      summary: Subscribe Business Profile to Products
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/UnsubscriptionRequest'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/UnsubscriptionResponse'
+definitions:
+  Address:
+    type: object
+    properties:
+      line1:
+        type: string
+      line2:
+        type: string
+      city:
+        type: string
+      state:
+        type: string
+      zip:
+        type: string
+      country:
+        type: string
+
+  BusinessProfile:
+    type: object
+    properties:
+      companyName:
+        type: string
+      legalName:
+        type: string
+      businessAddress:
+        $ref: '#/definitions/Address'
+      legalAddress:
+        $ref: '#/definitions/Address'
+      taxID:
+        type: string
+      email:
+        type: string
+      website:
+        type: string
+  BusinessProfileEntity:
+    type: object
+    properties:
+      businessProfile:
+        $ref: '#/definitions/BusinessProfile'
+      products:
+        type: array
+        items:
+          type: string
+
+  ProductValidationResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      message:
+        type: string
+
+  MultiProductValidationResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      validationResponse:
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/ProductValidationResponse'
+
+  SubscriptionRequest:
+    type: object
+    properties:
+      businessProfile:
+        $ref: '#/definitions/BusinessProfile'
+      products:
+        type: array
+        items:
+          type: string
+
+  SubscriptionResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      message:
+        type: string
+      batchValidationResponse:
+        $ref: '#/definitions/MultiProductValidationResponse'
+      texID:
+        type: string
+  UnsubscriptionRequest:
+    type: object
+    properties:
+      products:
+        type: array
+        items:
+          type: string
+  UnsubscriptionResponse:
+    type: object
+    properties:
+      profileId:
+        type: string

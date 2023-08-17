@@ -1,0 +1,1058 @@
+Index: build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/build.gradle b/build.gradle
+--- a/build.gradle	(revision b998889cff073cb1649ffef2299ab4595eb52187)
++++ b/build.gradle	(date 1691929263682)
+@@ -1,46 +1,55 @@
+ plugins {
+-	id 'java'
+-	id 'org.springframework.boot' version '2.7.14'
+-	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
++    id 'java'
++    id 'org.springframework.boot' version '2.7.14'
++    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+ }
+ 
+ group = 'com.intuit'
+ version = '0.0.1-SNAPSHOT'
+ 
+ java {
+-	sourceCompatibility = '11'
++    sourceCompatibility = '11'
+ }
+ 
+ configurations {
+-	compileOnly {
+-		extendsFrom annotationProcessor
+-	}
++    compileOnly {
++        extendsFrom annotationProcessor
++    }
+ }
+ 
+ repositories {
+-	mavenCentral()
++    mavenCentral()
+ }
+ 
+ ext {
+-	set('springCloudVersion', "2021.0.8")
++    set('springCloudVersion', "2021.0.8")
+ }
+ 
++def springfoxVersion = '3.0.0'
++def springfoxUiVersion = '2.9.2'
++
+ dependencies {
+-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+-	implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
+-	compileOnly 'org.projectlombok:lombok'
+-	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+-	annotationProcessor 'org.projectlombok:lombok'
+-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
++    implementation 'org.springframework.boot:spring-boot-starter-actuator'
++    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
++    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
++    implementation 'org.springframework.boot:spring-boot-starter-web'
++    implementation "io.springfox:springfox-swagger2:${springfoxVersion}"
++    implementation "io.springfox:springfox-swagger-ui:${springfoxUiVersion}"
++    implementation 'org.springframework.boot:spring-boot-starter-validation:2.4.0'
++    implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.33'
++    compileOnly 'org.projectlombok:lombok'
++    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
++    annotationProcessor 'org.projectlombok:lombok'
++    testImplementation 'org.springframework.boot:spring-boot-starter-test'
++
+ }
+ 
+ dependencyManagement {
+-	imports {
+-		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+-	}
++    imports {
++        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
++    }
+ }
+ 
+ tasks.named('test') {
+-	useJUnitPlatform()
++    useJUnitPlatform()
+ }
+Index: src/main/java/com/intuit/businessprofilemanager/utils/ProfileUtil.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/utils/ProfileUtil.java b/src/main/java/com/intuit/businessprofilemanager/utils/ProfileUtil.java
+new file mode 100644
+--- /dev/null	(date 1691935641499)
++++ b/src/main/java/com/intuit/businessprofilemanager/utils/ProfileUtil.java	(date 1691935641499)
+@@ -0,0 +1,46 @@
++package com.intuit.businessprofilemanager.utils;
++
++import com.intuit.businessprofilemanager.entity.AddressEntity;
++import com.intuit.businessprofilemanager.entity.ProfileEntity;
++import com.intuit.businessprofilemanager.entity.TaxIdentifiersEntity;
++import com.intuit.businessprofilemanager.model.Address;
++import com.intuit.businessprofilemanager.model.BusinessProfile;
++import com.intuit.businessprofilemanager.model.TaxIdentifier;
++
++import java.util.List;
++import java.util.Set;
++import java.util.stream.Collectors;
++
++public class ProfileUtil {
++
++    public static ProfileEntity getProfileEntity(BusinessProfile profile, List<String> products) {
++        return ProfileEntity.builder()
++                .companyName(profile.getCompanyName())
++                .legalName(profile.getLegalName())
++                .email(profile.getEmail())
++                .website(profile.getWebsite())
++                .businessAddress(getAddress(profile.getBusinessAddress()))
++                .legalAddress(getAddress(profile.getLegalAddress()))
++                .taxIdentifiers(getTaxIdentifiers(profile.getTaxIdentifiers()))
++                .build();
++    }
++
++    public static Set<TaxIdentifiersEntity> getTaxIdentifiers(List<TaxIdentifier> taxIdentifiers) {
++        return taxIdentifiers.stream().map(taxIdentifier -> TaxIdentifiersEntity.builder()
++                .taxIdentifierNo(taxIdentifier.getTaxIdentifierNo())
++                .taxIdentifierType(taxIdentifier.getTaxIdentifierType())
++                .build()
++        ).collect(Collectors.toSet());
++    }
++
++    public static AddressEntity getAddress(Address address) {
++        return AddressEntity.builder()
++                .line1(address.getLine1())
++                .line2(address.getLine2())
++                .city(address.getCity())
++                .state(address.getState())
++                .zip(address.getZip())
++                .country(address.getCountry())
++                .build();
++    }
++}
+Index: src/main/java/com/intuit/businessprofilemanager/entity/AddressEntity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/entity/AddressEntity.java b/src/main/java/com/intuit/businessprofilemanager/entity/AddressEntity.java
+new file mode 100644
+--- /dev/null	(date 1691940269788)
++++ b/src/main/java/com/intuit/businessprofilemanager/entity/AddressEntity.java	(date 1691940269788)
+@@ -0,0 +1,47 @@
++package com.intuit.businessprofilemanager.entity;
++
++import lombok.AllArgsConstructor;
++import lombok.Builder;
++import lombok.NoArgsConstructor;
++
++import javax.persistence.*;
++import java.io.Serializable;
++
++
++@Entity
++@Builder
++@AllArgsConstructor
++@Table(name = "address")
++public class AddressEntity implements Serializable {
++    @Id
++    @GeneratedValue(strategy = GenerationType.AUTO)
++    @Column(name = "id")
++    private Long id;
++
++    @Column(name = "address_line_1")
++    private String line1;
++
++    @Column(name = "address_line_2")
++    private String line2;
++
++    @Column(name = "city")
++    private String city;
++
++    @Column(name = "state")
++    private String state;
++
++    @Column(name = "zip")
++    private String zip;
++
++    @Column(name = "country")
++    private String country;
++
++    @OneToOne
++    @MapsId
++    @JoinColumn(name = "profile_id")
++    private ProfileEntity profile;
++
++    public AddressEntity() {
++
++    }
++}
+Index: src/main/java/com/intuit/businessprofilemanager/entity/ProfileEntity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/entity/ProfileEntity.java b/src/main/java/com/intuit/businessprofilemanager/entity/ProfileEntity.java
+new file mode 100644
+--- /dev/null	(date 1691940652508)
++++ b/src/main/java/com/intuit/businessprofilemanager/entity/ProfileEntity.java	(date 1691940652508)
+@@ -0,0 +1,58 @@
++package com.intuit.businessprofilemanager.entity;
++
++import lombok.*;
++
++import javax.persistence.*;
++import java.io.Serializable;
++import java.util.Set;
++
++@Setter
++@Getter
++@Builder
++@Entity
++@NoArgsConstructor
++@AllArgsConstructor
++@Table(name = "profiles")
++public class ProfileEntity implements Serializable {
++    @Id
++    @GeneratedValue(strategy = GenerationType.AUTO)
++    @Column(name = "id")
++    private Long id;
++
++    @Column(name = "company_name")
++    private String companyName;
++
++    @Column(name = "legal_name")
++    private String legalName;
++
++    @Column(name = "email")
++    private String email;
++
++    @Column(name = "website")
++    private String website;
++
++    @OneToOne(mappedBy = "profile", cascade = CascadeType.ALL)
++    @PrimaryKeyJoinColumn
++    private AddressEntity businessAddress;
++
++    @OneToOne(mappedBy = "profile", cascade = CascadeType.ALL)
++    @PrimaryKeyJoinColumn
++    private AddressEntity legalAddress;
++
++    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL)
++//    @PrimaryKeyJoinColumn
++    private Set<TaxIdentifiersEntity> taxIdentifiers;
++
++    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL)
++    @PrimaryKeyJoinColumn
++    private Set<SubscriptionEntity> subscriptionEntities;
++
++
++    public ProfileEntity(Long id, String companyName, String legalName, String email, String website) {
++        this.id = id;
++        this.companyName = companyName;
++        this.legalName = legalName;
++        this.email = email;
++        this.website = website;
++    }
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/SubscriptionProducts.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionProducts.java b/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionProducts.java
+new file mode 100644
+--- /dev/null	(date 1691922538552)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionProducts.java	(date 1691922538552)
+@@ -0,0 +1,19 @@
++package com.intuit.businessprofilemanager.model;
++
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++import lombok.NoArgsConstructor;
++
++import javax.validation.constraints.NotNull;
++import javax.validation.constraints.Size;
++import java.util.List;
++
++@Data
++@AllArgsConstructor
++@NoArgsConstructor
++public class SubscriptionProducts {
++    @NotNull
++    @Size(min = 1, max = 100)
++    List<String> products;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/controller/BaseController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/controller/BaseController.java b/src/main/java/com/intuit/businessprofilemanager/controller/BaseController.java
+new file mode 100644
+--- /dev/null	(date 1691921452467)
++++ b/src/main/java/com/intuit/businessprofilemanager/controller/BaseController.java	(date 1691921452467)
+@@ -0,0 +1,9 @@
++package com.intuit.businessprofilemanager.controller;
++
++import org.springframework.web.bind.annotation.RequestMapping;
++import org.springframework.web.bind.annotation.RestController;
++
++@RestController
++@RequestMapping("/v1")
++public class BaseController {
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/BusinessProfileEntity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/BusinessProfileEntity.java b/src/main/java/com/intuit/businessprofilemanager/model/BusinessProfileEntity.java
+new file mode 100644
+--- /dev/null	(date 1691923309967)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/BusinessProfileEntity.java	(date 1691923309967)
+@@ -0,0 +1,11 @@
++package com.intuit.businessprofilemanager.model;
++
++import lombok.Data;
++
++import java.util.List;
++
++@Data
++public class BusinessProfileEntity {
++    private BusinessProfile profile;
++    private List<String> subscribedProducts;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/TaxIdentifierType.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/TaxIdentifierType.java b/src/main/java/com/intuit/businessprofilemanager/model/TaxIdentifierType.java
+new file mode 100644
+--- /dev/null	(date 1691935641493)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/TaxIdentifierType.java	(date 1691935641493)
+@@ -0,0 +1,6 @@
++package com.intuit.businessprofilemanager.model;
++
++public enum TaxIdentifierType {
++    PAN,
++    EAN
++}
+Index: src/main/java/com/intuit/businessprofilemanager/repository/BusinessProfileRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/repository/BusinessProfileRepository.java b/src/main/java/com/intuit/businessprofilemanager/repository/BusinessProfileRepository.java
+new file mode 100644
+--- /dev/null	(date 1691928836753)
++++ b/src/main/java/com/intuit/businessprofilemanager/repository/BusinessProfileRepository.java	(date 1691928836753)
+@@ -0,0 +1,9 @@
++package com.intuit.businessprofilemanager.repository;
++
++import com.intuit.businessprofilemanager.entity.ProfileEntity;
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.stereotype.Repository;
++
++@Repository
++public interface BusinessProfileRepository extends JpaRepository<ProfileEntity, Long> {
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/SubscriptionRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionRequest.java b/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionRequest.java
+new file mode 100644
+--- /dev/null	(date 1691913034835)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionRequest.java	(date 1691913034835)
+@@ -0,0 +1,20 @@
++package com.intuit.businessprofilemanager.model;
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++import lombok.NoArgsConstructor;
++
++import javax.validation.constraints.NotNull;
++import javax.validation.constraints.Size;
++import java.util.List;
++
++@Data
++@AllArgsConstructor
++@NoArgsConstructor
++public class SubscriptionRequest {
++    @NotNull
++    private BusinessProfile profile;
++    @NotNull
++    @Size(min = 1, max = 100)  //assumption on max products
++    private List<String> products;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/SubscriptionResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionResponse.java b/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionResponse.java
+new file mode 100644
+--- /dev/null	(date 1691923309952)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/SubscriptionResponse.java	(date 1691923309952)
+@@ -0,0 +1,15 @@
++package com.intuit.businessprofilemanager.model;
++
++import com.fasterxml.jackson.annotation.JsonInclude;
++import lombok.AllArgsConstructor;
++import lombok.Data;
++
++@Data
++//@NoArgsConstructor
++@AllArgsConstructor
++@JsonInclude(JsonInclude.Include.NON_NULL)
++public class SubscriptionResponse {
++    private String profileId;
++    private String message;
++    private ErrorResponse errorResponse;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/entity/SubscriptionEntity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/entity/SubscriptionEntity.java b/src/main/java/com/intuit/businessprofilemanager/entity/SubscriptionEntity.java
+new file mode 100644
+--- /dev/null	(date 1691940339898)
++++ b/src/main/java/com/intuit/businessprofilemanager/entity/SubscriptionEntity.java	(date 1691940339898)
+@@ -0,0 +1,29 @@
++package com.intuit.businessprofilemanager.entity;
++
++import lombok.AllArgsConstructor;
++import lombok.NoArgsConstructor;
++
++import javax.persistence.*;
++import java.io.Serializable;
++
++@Entity
++@AllArgsConstructor
++@NoArgsConstructor
++@Table(name = "subscriptions")
++public class SubscriptionEntity implements Serializable {
++
++    @Id
++    @GeneratedValue(strategy = GenerationType.AUTO)
++    @Column(name = "id")
++    private Long id;
++
++    @Column(name = "product")
++    private String product;
++
++    @ManyToOne
++    @MapsId
++    @JoinColumn(name = "profile_id")
++    private ProfileEntity profile;
++
++}
++
+Index: src/main/java/com/intuit/businessprofilemanager/model/BusinessProfile.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/BusinessProfile.java b/src/main/java/com/intuit/businessprofilemanager/model/BusinessProfile.java
+new file mode 100644
+--- /dev/null	(date 1691939156758)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/BusinessProfile.java	(date 1691939156758)
+@@ -0,0 +1,19 @@
++package com.intuit.businessprofilemanager.model;
++
++import lombok.Data;
++
++import java.util.List;
++
++@Data
++public class BusinessProfile {
++
++    private String id;
++    private String companyName;
++    private String legalName;
++    private Address businessAddress;
++    private Address legalAddress;
++    private List<TaxIdentifier> taxIdentifiers;
++    private String email;
++    private String website;
++
++}
+Index: src/main/java/com/intuit/businessprofilemanager/service/SubscriptionService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/service/SubscriptionService.java b/src/main/java/com/intuit/businessprofilemanager/service/SubscriptionService.java
+new file mode 100644
+--- /dev/null	(date 1691939156763)
++++ b/src/main/java/com/intuit/businessprofilemanager/service/SubscriptionService.java	(date 1691939156763)
+@@ -0,0 +1,62 @@
++package com.intuit.businessprofilemanager.service;
++
++import com.intuit.businessprofilemanager.model.*;
++import org.springframework.stereotype.Service;
++
++import java.util.ArrayList;
++import java.util.HashSet;
++import java.util.List;
++import java.util.stream.Collectors;
++import java.util.stream.Stream;
++
++@Service
++public class SubscriptionService implements ISubscriptionService {
++
++    private final IValidationService validationService;
++    private final IBusinessProfileService businessProfileService;
++
++    public SubscriptionService(ValidationService validationService, IBusinessProfileService businessProfileService) {
++        this.validationService = validationService;
++        this.businessProfileService = businessProfileService;
++    }
++
++    /**
++     * @param request subscription request
++     * @return
++     */
++    @Override
++    public SubscriptionResponse subscribe(SubscriptionRequest request) {
++        ValidationResponse validationResponse = validationService.validate(request.getProfile(), request.getProducts());
++        if (validationResponse.getStatus() == ValidationStatus.FAILED) {
++            //build and return response;
++            return new SubscriptionResponse(null, "", ErrorResponse.builder().build());
++        }
++        String profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
++        return new SubscriptionResponse(profileId, "Business profile is updated and subscribed to products", null);
++    }
++
++    @Override
++    public SubscriptionResponse subscribe(String profileId, SubscriptionProducts subscriptionsRequested) {
++        BusinessProfileEntity profileEntity = businessProfileService.getProfile(profileId);
++        List<String> alreadySubscribed = profileEntity.getSubscribedProducts();
++        List<String> allSubscriptions = new ArrayList<>(new HashSet<>(Stream.concat(alreadySubscribed.stream(),
++                subscriptionsRequested.getProducts().stream()).collect(Collectors.toList())));
++
++        if (allSubscriptions.size() == subscriptionsRequested.getProducts().size()) {
++            return new SubscriptionResponse(profileEntity.getProfile().getId(), "Already subscribed to products", null);
++        }
++        businessProfileService.updateSubscription(profileId, allSubscriptions);
++        return new SubscriptionResponse(profileId, "", null);
++    }
++
++    /**
++     * @param request
++     * @return
++     */
++    @Override
++    public UnsubscriptionResponse unsubscribe(String profileId, UnsubscriptionRequest request) {
++        //unlink and mark profile as inactive
++
++        return null;
++    }
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/Address.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/Address.java b/src/main/java/com/intuit/businessprofilemanager/model/Address.java
+new file mode 100644
+--- /dev/null	(date 1691927265994)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/Address.java	(date 1691927265994)
+@@ -0,0 +1,17 @@
++package com.intuit.businessprofilemanager.model;
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++import lombok.NoArgsConstructor;
++
++@Data
++@AllArgsConstructor
++@NoArgsConstructor
++public class Address {
++    private String line1;
++    private String line2;
++    private String city;
++    private String state;
++    private String zip;
++    private String country;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/service/BusinessProfileService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/service/BusinessProfileService.java b/src/main/java/com/intuit/businessprofilemanager/service/BusinessProfileService.java
+new file mode 100644
+--- /dev/null	(date 1691935641521)
++++ b/src/main/java/com/intuit/businessprofilemanager/service/BusinessProfileService.java	(date 1691935641521)
+@@ -0,0 +1,53 @@
++package com.intuit.businessprofilemanager.service;
++
++import com.intuit.businessprofilemanager.entity.AddressEntity;
++import com.intuit.businessprofilemanager.entity.ProfileEntity;
++import com.intuit.businessprofilemanager.entity.TaxIdentifiersEntity;
++import com.intuit.businessprofilemanager.model.Address;
++import com.intuit.businessprofilemanager.model.BusinessProfile;
++import com.intuit.businessprofilemanager.model.BusinessProfileEntity;
++import com.intuit.businessprofilemanager.model.TaxIdentifier;
++import com.intuit.businessprofilemanager.repository.BusinessProfileRepository;
++import org.springframework.stereotype.Service;
++
++import java.util.List;
++import java.util.Set;
++import java.util.stream.Collectors;
++
++import static com.intuit.businessprofilemanager.utils.ProfileUtil.getProfileEntity;
++
++@Service
++public class BusinessProfileService implements IBusinessProfileService {
++    private final BusinessProfileRepository repository;
++
++    public BusinessProfileService(BusinessProfileRepository repository) {
++        this.repository = repository;
++    }
++
++    @Override
++    public String createProfile(BusinessProfile profile, List<String> products) {
++        ProfileEntity profileEntity = repository.saveAndFlush(getProfileEntity(profile, products));
++        return profileEntity.getId().toString();
++    }
++
++    @Override
++    public BusinessProfileEntity getProfile(String profileId) {
++        return null;
++    }
++
++    @Override
++    public BusinessProfile updateProfile(BusinessProfile profile) {
++        return null;
++    }
++
++    @Override
++    public boolean deleteProfile(String profileId) {
++        return false;
++    }
++
++    @Override
++    public BusinessProfile updateSubscription(String profileId, List<String> profile) {
++
++        return null;
++    }
++}
+Index: src/main/java/com/intuit/businessprofilemanager/entity/TaxIdentifiersEntity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/entity/TaxIdentifiersEntity.java b/src/main/java/com/intuit/businessprofilemanager/entity/TaxIdentifiersEntity.java
+new file mode 100644
+--- /dev/null	(date 1691940826001)
++++ b/src/main/java/com/intuit/businessprofilemanager/entity/TaxIdentifiersEntity.java	(date 1691940826001)
+@@ -0,0 +1,48 @@
++package com.intuit.businessprofilemanager.entity;
++
++import com.intuit.businessprofilemanager.model.TaxIdentifierType;
++import lombok.*;
++
++import javax.persistence.*;
++import java.io.Serializable;
++
++@Entity
++@Setter
++@Builder
++@AllArgsConstructor
++@Getter
++@Table(name = "tax_identifiers")
++public class TaxIdentifiersEntity implements Serializable {
++
++    @Id
++    @GeneratedValue(strategy = GenerationType.AUTO)
++    @Column(name = "id")
++    private Long id;
++
++    @Column(name = "tax_identifier")
++    private TaxIdentifierType taxIdentifierType;
++
++    @Column(name = "tax_identifier_no")
++    private String taxIdentifierNo;
++
++//    @ManyToOne
++//    @MapsId
++//    @JoinColumn(name = "profile_id")
++
++    @ManyToOne(optional = false)
++    @JoinColumn(name = "profile_id", nullable = false)
++    private ProfileEntity profile;
++
++    public ProfileEntity getProfile() {
++        return profile;
++    }
++
++    public void setProfile(ProfileEntity profile) {
++        this.profile = profile;
++    }
++
++
++    public TaxIdentifiersEntity() {
++
++    }
++}
+Index: src/main/java/com/intuit/businessprofilemanager/service/ISubscriptionService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/service/ISubscriptionService.java b/src/main/java/com/intuit/businessprofilemanager/service/ISubscriptionService.java
+new file mode 100644
+--- /dev/null	(date 1691921452480)
++++ b/src/main/java/com/intuit/businessprofilemanager/service/ISubscriptionService.java	(date 1691921452480)
+@@ -0,0 +1,11 @@
++package com.intuit.businessprofilemanager.service;
++
++import com.intuit.businessprofilemanager.model.*;
++
++public interface ISubscriptionService {
++    SubscriptionResponse subscribe(SubscriptionRequest request);
++
++    SubscriptionResponse subscribe(String profileId, SubscriptionProducts products);
++
++    UnsubscriptionResponse unsubscribe(String profileId, UnsubscriptionRequest request);
++}
+Index: src/main/java/com/intuit/businessprofilemanager/service/IBusinessProfileService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/service/IBusinessProfileService.java b/src/main/java/com/intuit/businessprofilemanager/service/IBusinessProfileService.java
+new file mode 100644
+--- /dev/null	(date 1691924359721)
++++ b/src/main/java/com/intuit/businessprofilemanager/service/IBusinessProfileService.java	(date 1691924359721)
+@@ -0,0 +1,18 @@
++package com.intuit.businessprofilemanager.service;
++
++import com.intuit.businessprofilemanager.model.BusinessProfile;
++import com.intuit.businessprofilemanager.model.BusinessProfileEntity;
++
++import java.util.List;
++
++public interface IBusinessProfileService {
++    String createProfile(BusinessProfile profile, List<String> products);
++
++    BusinessProfileEntity getProfile(String profileId);
++
++    BusinessProfile updateProfile(BusinessProfile profile);
++
++    boolean deleteProfile(String profileId);
++
++    BusinessProfile updateSubscription(String profileId, List<String> profile);
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/TaxIdentifier.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/TaxIdentifier.java b/src/main/java/com/intuit/businessprofilemanager/model/TaxIdentifier.java
+new file mode 100644
+--- /dev/null	(date 1691935641527)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/TaxIdentifier.java	(date 1691935641527)
+@@ -0,0 +1,13 @@
++package com.intuit.businessprofilemanager.model;
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++import lombok.NoArgsConstructor;
++
++@Data
++@AllArgsConstructor
++@NoArgsConstructor
++public class TaxIdentifier {
++    private TaxIdentifierType taxIdentifierType;
++    private String taxIdentifierNo;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/UnsubscriptionRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/UnsubscriptionRequest.java b/src/main/java/com/intuit/businessprofilemanager/model/UnsubscriptionRequest.java
+new file mode 100644
+--- /dev/null	(date 1691921452510)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/UnsubscriptionRequest.java	(date 1691921452510)
+@@ -0,0 +1,20 @@
++package com.intuit.businessprofilemanager.model;
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++import lombok.NoArgsConstructor;
++
++import javax.validation.constraints.NotNull;
++import javax.validation.constraints.Size;
++import java.util.List;
++
++@Data
++@AllArgsConstructor
++@NoArgsConstructor
++public class UnsubscriptionRequest {
++    @NotNull
++    @Size(min = 1, max = 100)
++    List<String> products;
++    @NotNull
++    private String profileId;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/UnsubscriptionResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/UnsubscriptionResponse.java b/src/main/java/com/intuit/businessprofilemanager/model/UnsubscriptionResponse.java
+new file mode 100644
+--- /dev/null	(date 1691921452517)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/UnsubscriptionResponse.java	(date 1691921452517)
+@@ -0,0 +1,6 @@
++package com.intuit.businessprofilemanager.model;
++
++public class UnsubscriptionResponse {
++    private String profileId;
++//    private Status
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/ValidationResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/ValidationResponse.java b/src/main/java/com/intuit/businessprofilemanager/model/ValidationResponse.java
+new file mode 100644
+--- /dev/null	(date 1691938939403)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/ValidationResponse.java	(date 1691938939403)
+@@ -0,0 +1,12 @@
++package com.intuit.businessprofilemanager.model;
++
++import lombok.Builder;
++import lombok.Data;
++
++@Data
++@Builder
++public class ValidationResponse {
++    private String productId;
++    private ValidationStatus status;
++    private String validationMessage;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/service/IValidationService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/service/IValidationService.java b/src/main/java/com/intuit/businessprofilemanager/service/IValidationService.java
+new file mode 100644
+--- /dev/null	(date 1691921452471)
++++ b/src/main/java/com/intuit/businessprofilemanager/service/IValidationService.java	(date 1691921452471)
+@@ -0,0 +1,10 @@
++package com.intuit.businessprofilemanager.service;
++
++import com.intuit.businessprofilemanager.model.BusinessProfile;
++import com.intuit.businessprofilemanager.model.ValidationResponse;
++
++import java.util.List;
++
++public interface IValidationService {
++    ValidationResponse validate(BusinessProfile profile, List<String> product);
++}
+Index: src/main/java/com/intuit/businessprofilemanager/controller/SubscriptionController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/controller/SubscriptionController.java b/src/main/java/com/intuit/businessprofilemanager/controller/SubscriptionController.java
+new file mode 100644
+--- /dev/null	(date 1691921452523)
++++ b/src/main/java/com/intuit/businessprofilemanager/controller/SubscriptionController.java	(date 1691921452523)
+@@ -0,0 +1,37 @@
++package com.intuit.businessprofilemanager.controller;
++
++import com.intuit.businessprofilemanager.model.*;
++import com.intuit.businessprofilemanager.service.ISubscriptionService;
++import org.springframework.http.ResponseEntity;
++import org.springframework.web.bind.annotation.*;
++
++import javax.validation.Valid;
++
++@RestController
++@RequestMapping()
++public class SubscriptionController extends BaseController {
++
++    private final ISubscriptionService subscriptionService;
++
++    public SubscriptionController(ISubscriptionService subscriptionService) {
++        this.subscriptionService = subscriptionService;
++    }
++
++    @PostMapping("/subscribe")
++    public ResponseEntity<SubscriptionResponse> subscribe(@RequestBody @Valid SubscriptionRequest request) {
++        return ResponseEntity.ok(subscriptionService.subscribe(request));
++    }
++
++    @PostMapping("/profile/{profileId}/subscribe")
++    public ResponseEntity<SubscriptionResponse> subscribe(@RequestBody @Valid SubscriptionProducts products,
++                                                          @PathVariable String profileId) {
++        return ResponseEntity.ok(subscriptionService.subscribe(profileId, products));
++    }
++
++    @PostMapping("/profile/{profileId}/unsubscribe")
++    public ResponseEntity<UnsubscriptionResponse> unsubscribe(@RequestBody @Valid UnsubscriptionRequest request,
++                                                              @PathVariable String profileId) {
++        return ResponseEntity.ok(subscriptionService.unsubscribe(profileId, request));
++    }
++
++}
+Index: src/main/java/com/intuit/businessprofilemanager/service/ValidationService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/service/ValidationService.java b/src/main/java/com/intuit/businessprofilemanager/service/ValidationService.java
+new file mode 100644
+--- /dev/null	(date 1691938939409)
++++ b/src/main/java/com/intuit/businessprofilemanager/service/ValidationService.java	(date 1691938939409)
+@@ -0,0 +1,26 @@
++package com.intuit.businessprofilemanager.service;
++
++import com.intuit.businessprofilemanager.model.BusinessProfile;
++import com.intuit.businessprofilemanager.model.ValidationResponse;
++import com.intuit.businessprofilemanager.model.ValidationStatus;
++import org.springframework.stereotype.Service;
++
++import java.util.List;
++
++@Service
++public class ValidationService implements IValidationService {
++    /**
++     * TODO: update all description
++     * @param profile
++     * @param product
++     * @return
++     */
++    @Override
++    public ValidationResponse validate(BusinessProfile profile, List<String> product) {
++        // parallel validation
++        //retries
++        //timeout
++        //ckt breaker
++        return ValidationResponse.builder().status(ValidationStatus.SUCCESSFUL).build();
++    }
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/ValidationStatus.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/ValidationStatus.java b/src/main/java/com/intuit/businessprofilemanager/model/ValidationStatus.java
+new file mode 100644
+--- /dev/null	(date 1691921452530)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/ValidationStatus.java	(date 1691921452530)
+@@ -0,0 +1,6 @@
++package com.intuit.businessprofilemanager.model;
++
++public enum ValidationStatus {
++    FAILED,
++    SUCCESSFUL
++}
+Index: src/main/java/com/intuit/businessprofilemanager/model/ErrorResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/model/ErrorResponse.java b/src/main/java/com/intuit/businessprofilemanager/model/ErrorResponse.java
+new file mode 100644
+--- /dev/null	(date 1691922372199)
++++ b/src/main/java/com/intuit/businessprofilemanager/model/ErrorResponse.java	(date 1691922372199)
+@@ -0,0 +1,16 @@
++package com.intuit.businessprofilemanager.model;
++
++import lombok.AllArgsConstructor;
++import lombok.Builder;
++import lombok.Data;
++import lombok.NoArgsConstructor;
++
++@Data
++@Builder
++@NoArgsConstructor
++@AllArgsConstructor
++public class ErrorResponse {
++    private String responseCode;
++    private String responseMessage;
++    private String responseDetail;
++}
+Index: src/main/java/com/intuit/businessprofilemanager/controller/BusinessProfileController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/intuit/businessprofilemanager/controller/BusinessProfileController.java b/src/main/java/com/intuit/businessprofilemanager/controller/BusinessProfileController.java
+new file mode 100644
+--- /dev/null	(date 1691914771412)
++++ b/src/main/java/com/intuit/businessprofilemanager/controller/BusinessProfileController.java	(date 1691914771412)
+@@ -0,0 +1,29 @@
++package com.intuit.businessprofilemanager.controller;
++
++import com.intuit.businessprofilemanager.model.BusinessProfile;
++import org.springframework.web.bind.annotation.*;
++
++@RestController
++@RequestMapping("/profile")
++public class BusinessProfileController {
++
++    //read
++    @GetMapping("/{id}")
++    public void getBusinessProfile(@PathVariable String profileId) {
++
++    }
++
++    //put
++    @PutMapping("/{id}")
++    public void updateProfile(@PathVariable String profileId, @RequestBody BusinessProfile profile) {
++
++    }
++
++    //patch
++//    @PatchMapping("/{id}")
++//    public void updateProfile() {
++//
++//    }
++
++
++}
+Index: src/main/resources/application.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>ISO-8859-1
+===================================================================
+diff --git a/src/main/resources/application.properties b/src/main/resources/application.properties
+--- a/src/main/resources/application.properties	(revision b998889cff073cb1649ffef2299ab4595eb52187)
++++ b/src/main/resources/application.properties	(date 1691939766125)
+@@ -1,1 +1,13 @@
++spring.datasource.driver-class-name= com.mysql.cj.jdbc.Driver
++spring.datasource.username=root
++spring.datasource.password=password
++spring.datasource.url=jdbc:mysql://localhost:3306/profile_db?createDatabaseIfNotExist=true
++#spring.jpa.hibernate.ddl-auto=create-drop
++spring.jpa.hibernate.ddl-auto=update
++spring.jpa.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
++spring.jpa.generate-ddl=false
++management.endpoint.health.show-details= always
++management.endpoints.web.exposure.include=health
++management.health.circuitbreakers.enabled=true
++
+ 

@@ -1,46 +1,108 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '2.7.14'
-	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'java'
+    id 'org.springframework.boot' version '2.7.14'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'jacoco'
 }
-
+apply from: rootProject.file("gradle/checkstyle.gradle")
 group = 'com.intuit'
 version = '0.0.1-SNAPSHOT'
 
 java {
-	sourceCompatibility = '11'
+    sourceCompatibility = '11'
 }
 
 configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
 }
 
 repositories {
-	mavenCentral()
-}
-
-ext {
-	set('springCloudVersion', "2021.0.8")
+    mavenCentral()
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    /**
+     * Spring Boot Core Dependencies
+     */
+    implementation "org.springframework.boot:spring-boot-starter-actuator:${springBootVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBootVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-validation:${springBootVersion}"
+    implementation "mysql:mysql-connector-java:${mysqlConnectorVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-parent:${springBootVersion}"
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    /**
+     * Circuit Breaker Dependencies using Resilience4j
+     */
+    implementation "org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j:${resilience4jVersion}"
+    implementation("org.springframework.boot:spring-boot-starter-aop:${springStartedAopVersion}")
+    implementation("org.springframework:spring-aspects:5.3.29")
+
+    /**
+     * API Documentation and Explorer Integration using springfox-boot-starter
+     */
+    implementation "io.springfox:springfox-boot-starter:${springFoxVersion}"
+
+    // Other Dependencies
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBootVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testImplementation "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
+
 }
 
 dependencyManagement {
-	imports {
-		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
-	}
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+tasks.named('test') {
+    useJUnitPlatform()
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+
+jacoco {
+    toolVersion = "0.8.9"
 }
+
+
+def jacocoExcludes = [
+        '**/entity**',
+        '**/config**',
+        '**/model**',
+        '**/exception**'
+]
+
+jacocoTestCoverageVerification {
+    afterEvaluate {
+        getClassDirectories().setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: jacocoExcludes)
+        }))
+    }
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.90
+            }
+        }
+    }
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = false
+        csv.required = false
+        html.required = true
+    }
+    afterEvaluate {
+        getClassDirectories().setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: jacocoExcludes)
+        }))
+    }
+}
+
+test.finalizedBy jacocoTestReport
+check.dependsOn jacocoTestCoverageVerification
