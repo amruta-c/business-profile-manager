@@ -32,11 +32,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(SpringExtension.class)
 @WebFluxTest(controllers = SubscriptionController.class)
 @AutoConfigureWebTestClient(timeout = "10000")
-@Import({
-        ExceptionHandlerAdvice.class,
-        AppMetrics.class,
-        SimpleMeterRegistry.class
-})
+@Import({ExceptionHandlerAdvice.class, AppMetrics.class, SimpleMeterRegistry.class})
 public class SubscriptionControllerTest {
     @Autowired
     private WebTestClient webTestClient;

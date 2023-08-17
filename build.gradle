@@ -93,9 +93,9 @@ jacocoTestCoverageVerification {
 
 jacocoTestReport {
     reports {
-        xml.enabled false
-        csv.enabled false
-        html.enabled true
+        xml.required = false
+        csv.required = false
+        html.required = true
     }
     afterEvaluate {
         getClassDirectories().setFrom(files(classDirectories.files.collect {
