@@ -7,6 +7,7 @@ import com.intuit.businessprofilemanager.exception.DataValidationException;
 import com.intuit.businessprofilemanager.exception.RepositoryException;
 import com.intuit.businessprofilemanager.model.*;
 import com.intuit.businessprofilemanager.repository.BusinessProfileRepository;
+import com.intuit.businessprofilemanager.utils.ValidationUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -16,11 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.PersistenceException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static com.intuit.businessprofilemanager.service.TestUtil.getBusinessProfile;
-import static com.intuit.businessprofilemanager.service.TestUtil.getValidationResponses;
+import static com.intuit.businessprofilemanager.utils.TestConstants.*;
+import static com.intuit.businessprofilemanager.utils.TestUtil.*;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -28,10 +30,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class BusinessProfileServiceTest {
 
-    public static final long ID = 1L;
-    public static final String ERROR_MESSAGE = "ERROR_MESSAGE";
     @Mock
-    private IValidationService validationService;
+    private ValidationUtil validationUtil;
 
     @Mock
     private BusinessProfileRepository repository;
@@ -48,40 +48,40 @@ class BusinessProfileServiceTest {
     @Test
     void testCreateProfileForPositiveCase() {
         BusinessProfile profile = getBusinessProfile();
-        List<String> products = List.of("Payroll", "Payment");
+        List<String> products = List.of(PAYROLL, PAYMENT);
         when(repository.saveAndFlush(any(ProfileEntity.class))).thenReturn(ProfileEntity.builder().id(ID).build());
 
         Long profileId = service.createProfile(profile, products);
 
         assertEquals(ID, profileId);
         verify(repository).saveAndFlush(any(ProfileEntity.class));
-        verifyNoInteractions(validationService);
+        verifyNoInteractions(validationUtil);
     }
 
     @Test
     void testCreateProfileWhenExceptionIsThrown() {
         BusinessProfile profile = getBusinessProfile();
-        List<String> products = List.of("Payroll", "Payment");
+        List<String> products = List.of(PAYROLL, PAYMENT);
         when(repository.saveAndFlush(any(ProfileEntity.class))).thenThrow(new PersistenceException(ERROR_MESSAGE));
 
         RepositoryException exception = assertThrows(RepositoryException.class, () -> service.createProfile(profile, products),
                 "Expect createProfile() to throw RepositoryException but it didn't");
         assertEquals("Failure in persisting profile details", exception.getMessage());
         verify(repository).saveAndFlush(any(ProfileEntity.class));
-        verifyNoInteractions(validationService);
+        verifyNoInteractions(validationUtil);
     }
 
     @Test
     void testGetProfileForPositiveCase() {
         when(repository.getReferenceById(ID)).thenReturn(mockedProfileEntity);
         when(mockedProfileEntity.getSubscriptionEntities()).thenReturn(Set.of(SubscriptionEntity.builder()
-                .product("Payroll").build()));
+                .product(PAYROLL).build()));
 
         BusinessProfileData profile = service.getProfile(ID);
 
         assertEquals(ID, profile.getProfile().getId());
         verify(repository).getReferenceById(ID);
-        verifyNoInteractions(validationService);
+        verifyNoInteractions(validationUtil);
     }
 
     @Test
@@ -93,7 +93,7 @@ class BusinessProfileServiceTest {
         String expectedMessage = String.format("The given profileId: %s doesn't exist or profileId is invalid", ID);
         assertEquals(expectedMessage, exception.getMessage());
         verify(repository).getReferenceById(ID);
-        verifyNoInteractions(validationService);
+        verifyNoInteractions(validationUtil);
     }
 
     @Test
@@ -105,16 +105,14 @@ class BusinessProfileServiceTest {
         assertThat(exception.getMessage()).contains("An error occurred while attempting to read profile for profileId")
                 .contains(String.valueOf(ID));
         verify(repository).getReferenceById(ID);
-        verifyNoInteractions(validationService);
+        verifyNoInteractions(validationUtil);
     }
 
     @Test
     void testUpdateProfile() {
         when(repository.getReferenceById(ID)).thenReturn(mockedProfileEntity);
         when(mockedProfileEntity.getSubscriptionEntities()).thenReturn(Set.of(SubscriptionEntity.builder()
-                .product("Payroll").build()));
-        when(validationService.validate(any(BusinessProfile.class), anyList()))
-                .thenReturn(getValidationResponses(ValidationStatus.SUCCESSFUL, 2));
+                .product(PAYROLL).build()));
         when(repository.save(any(ProfileEntity.class))).thenReturn(mockedProfileEntity);
 
         BusinessProfileData businessProfileData = service.updateProfile(ID, mockedBusinessProfileUpdateRequest);
@@ -122,17 +120,17 @@ class BusinessProfileServiceTest {
         assertNotNull(businessProfileData);
         verify(repository).getReferenceById(ID);
         verify(repository).save(any(ProfileEntity.class));
-        verify(validationService).validate(any(BusinessProfile.class), anyList());
+        verify(validationUtil).validateProfileWithProducts(any(BusinessProfile.class), anyList());
     }
 
     @Test
     void testUpdateProfileWhenValidationFails() {
         when(repository.getReferenceById(ID)).thenReturn(mockedProfileEntity);
         when(mockedProfileEntity.getSubscriptionEntities()).thenReturn(Set.of(SubscriptionEntity.builder()
-                .product("Payroll").build()));
+                .product(PAYROLL).build()));
         List<ValidationResponse> validationResponses = getValidationResponses(ValidationStatus.FAILED, 2);
-        when(validationService.validate(any(BusinessProfile.class), anyList()))
-                .thenReturn(validationResponses);
+        doThrow(new DataValidationException(validationResponses))
+                .when(validationUtil).validateProfileWithProducts(any(BusinessProfile.class), anyList());
 
         DataValidationException exception = assertThrows(DataValidationException.class,
                 () -> service.updateProfile(ID, mockedBusinessProfileUpdateRequest),
@@ -141,7 +139,7 @@ class BusinessProfileServiceTest {
         assertEquals(validationResponses, exception.getFailedValidationResponses());
         verify(repository).getReferenceById(ID);
         verify(repository, times(0)).save(any(ProfileEntity.class));
-        verify(validationService).validate(any(BusinessProfile.class), anyList());
+        verify(validationUtil).validateProfileWithProducts(any(BusinessProfile.class), anyList());
     }
 
     @Test
@@ -157,7 +155,7 @@ class BusinessProfileServiceTest {
         assertEquals(expectedMessage, exception.getMessage());
         verify(repository).getReferenceById(ID);
         verify(repository, times(0)).save(any(ProfileEntity.class));
-        verifyNoInteractions(validationService);
+        verifyNoInteractions(validationUtil);
     }
 
     @Test
@@ -173,7 +171,7 @@ class BusinessProfileServiceTest {
         assertEquals(expectedMessage, exception.getMessage());
         verify(repository).getReferenceById(ID);
         verify(repository, times(0)).save(any(ProfileEntity.class));
-        verifyNoInteractions(validationService);
+        verifyNoInteractions(validationUtil);
     }
 
     @Test
@@ -195,18 +193,61 @@ class BusinessProfileServiceTest {
         verify(repository).deleteById(ID);
     }
 
-//    @Test
-//    void testUpdateSubscription() {
-//        List<String> products = List.of("Payroll");
-//        List<ValidationResponse> validationResponses = getValidationResponses(ValidationStatus.SUCCESSFUL, 1);
-//        when(repository.getReferenceById(ID)).thenReturn(mockedProfileEntity);
-//        when(mockedProfileEntity.getSubscriptionEntities()).thenReturn(Set.of(SubscriptionEntity.builder()
-//                .product("Payroll").build()));
-//        when(validationService.validate(any(BusinessProfile.class), anyList())).thenReturn(validationResponses);
-//        when(repository.save(any(ProfileEntity.class))).thenReturn(mockedProfileEntity);
-//
-//        BusinessProfile profile = service.updateSubscription(ID, products);
-//
-//
-//    }
+    @Test
+    void testUpdateSubscription() {
+        List<String> products = new ArrayList<>();
+        products.add(PAYROLL);
+        when(repository.getReferenceById(ID)).thenReturn(getProfileEntityWithSubscriptions(ID, PAYMENT));
+        when(repository.save(any(ProfileEntity.class))).thenReturn(mockedProfileEntity);
+
+        BusinessProfile profile = service.updateSubscription(ID, products);
+
+        assertNotNull(profile);
+        verify(repository).getReferenceById(ID);
+        verify(repository).save(any(ProfileEntity.class));
+        verify(validationUtil).validateProfileWithProducts(any(BusinessProfile.class), anyList());
+    }
+
+    @Test
+    void testUpdateSubscriptionWhenNoNewProductsToSubscribe() {
+        List<String> products = new ArrayList<>();
+        products.add(PAYROLL);
+        when(repository.getReferenceById(ID)).thenReturn(getProfileEntityWithSubscriptions(ID, PAYROLL));
+
+        BusinessProfile profile = service.updateSubscription(ID, products);
+
+        assertNotNull(profile);
+        verify(repository).getReferenceById(ID);
+        verify(repository, times(0)).save(any(ProfileEntity.class));
+        verifyNoInteractions(validationUtil);
+    }
+
+    @Test
+    void testUpdateSubscriptionForInvalidProfileId() {
+        when(repository.getReferenceById(ID)).thenThrow(new EntityNotFoundException(ERROR_MESSAGE));
+
+        DataNotFoundException exception = assertThrows(DataNotFoundException.class,
+                () -> service.updateSubscription(ID, List.of(PAYROLL)),
+                "Expect updateSubscription() to throw DataNotFoundException but it didn't");
+
+        String expectedMessage = String.format("The given profileId: %s doesn't exist or profileId is invalid", ID);
+        assertEquals(expectedMessage, exception.getMessage());
+        verify(repository, times(0)).save(any(ProfileEntity.class));
+        verifyNoInteractions(validationUtil);
+    }
+
+    @Test
+    void testUpdateSubscriptionWhenPersistenceExceptionIsThrown() {
+        when(repository.getReferenceById(ID)).thenThrow(new PersistenceException(ERROR_MESSAGE));
+
+        RepositoryException exception = assertThrows(RepositoryException.class,
+                () -> service.updateSubscription(ID, List.of(PAYROLL)),
+                "Expect updateSubscription() to throw RepositoryException but it didn't");
+
+        assertThat(exception.getMessage())
+                .contains("An error occurred while attempting to update subscription for profileId:")
+                .contains(String.valueOf(ID));
+        verify(repository, times(0)).save(any(ProfileEntity.class));
+        verifyNoInteractions(validationUtil);
+    }
 }

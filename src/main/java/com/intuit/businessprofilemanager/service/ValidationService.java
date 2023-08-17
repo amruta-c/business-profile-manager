@@ -55,5 +55,4 @@ public class ValidationService implements IValidationService {
         ResponseEntity<ValidationResponse> validationResponse = validationClient.callValidationApi(profile, product);
         return validationResponse.getBody();
     }
-
 }

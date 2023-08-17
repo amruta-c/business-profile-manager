@@ -1,25 +1,24 @@
 package com.intuit.businessprofilemanager.service;
 
-import com.intuit.businessprofilemanager.exception.DataValidationException;
 import com.intuit.businessprofilemanager.model.*;
 import com.intuit.businessprofilemanager.utils.AppMetrics;
+import com.intuit.businessprofilemanager.utils.ValidationUtil;
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class SubscriptionService implements ISubscriptionService {
 
-    private final IValidationService validationService;
+    private final ValidationUtil validationUtil;
     private final IBusinessProfileService businessProfileService;
     private final AppMetrics metrics;
 
-    public SubscriptionService(IValidationService validationService, IBusinessProfileService businessProfileService, AppMetrics metrics) {
-        this.validationService = validationService;
+    public SubscriptionService(ValidationUtil validationUtil, IBusinessProfileService businessProfileService, AppMetrics metrics) {
+        this.validationUtil = validationUtil;
         this.businessProfileService = businessProfileService;
         this.metrics = metrics;
     }
@@ -33,15 +32,7 @@ public class SubscriptionService implements ISubscriptionService {
     @Override
     @Timed(value = "business-profile-manager.endpoint.subscribe.timer")
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
-        List<ValidationResponse> validationResponses = validationService.validate(request.getProfile(),
-                request.getProducts());
-        List<ValidationResponse> validationFailedProducts = validationResponses.stream()
-                .filter(validationResponse -> validationResponse.getStatus() == ValidationStatus.FAILED)
-                .collect(Collectors.toList());
-        if (!validationFailedProducts.isEmpty()) {
-            throw new DataValidationException(validationFailedProducts);
-        }
-
+        validationUtil.validateProfileWithProducts(request.getProfile(), request.getProducts());
         Long profileId = businessProfileService.createProfile(request.getProfile(), request.getProducts());
         log.info("Business profile with profileId: {} has been subscribed successfully", profileId);
         metrics.incrementSubscriptionCount();

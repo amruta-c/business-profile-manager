@@ -12,7 +12,8 @@ import org.springframework.http.HttpStatus;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ValidationResponse {
-    private String productId;
+    private Long profileId;
+    private String product;
     private ValidationStatus status;
     private HttpStatus statusCode;
     private String validationMessage;

@@ -5,9 +5,12 @@ import com.intuit.businessprofilemanager.entity.SubscriptionEntity;
 import com.intuit.businessprofilemanager.exception.DataNotFoundException;
 import com.intuit.businessprofilemanager.exception.DataValidationException;
 import com.intuit.businessprofilemanager.exception.RepositoryException;
-import com.intuit.businessprofilemanager.model.*;
+import com.intuit.businessprofilemanager.model.BusinessProfile;
+import com.intuit.businessprofilemanager.model.BusinessProfileData;
+import com.intuit.businessprofilemanager.model.BusinessProfileUpdateRequest;
 import com.intuit.businessprofilemanager.repository.BusinessProfileRepository;
 import com.intuit.businessprofilemanager.utils.ProfileUtil;
+import com.intuit.businessprofilemanager.utils.ValidationUtil;
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,11 +27,11 @@ import static com.intuit.businessprofilemanager.utils.ProfileUtil.*;
 @Service
 @Slf4j
 public class BusinessProfileService implements IBusinessProfileService {
-    private final IValidationService validationService;
+    private final ValidationUtil validationUtil;
     private final BusinessProfileRepository repository;
 
-    public BusinessProfileService(IValidationService validationService, BusinessProfileRepository repository) {
-        this.validationService = validationService;
+    public BusinessProfileService(ValidationUtil validationUtil, BusinessProfileRepository repository) {
+        this.validationUtil = validationUtil;
         this.repository = repository;
     }
 
@@ -90,7 +93,7 @@ public class BusinessProfileService implements IBusinessProfileService {
         try {
             ProfileEntity existingProfileEntity = repository.getReferenceById(profileId);
             BusinessProfile profile = ProfileUtil.buildBusinessProfile(request, existingProfileEntity);
-            validateProfileWithProducts(profile);
+            validationUtil.validateProfileWithProducts(profile, profile.getSubscriptionProducts().getProducts());
             ProfileEntity profileEntity = buildProfileEntity(profile, existingProfileEntity);
             ProfileEntity updatedProfile = repository.save(profileEntity);
             return buildBusinessProfileData(updatedProfile);
@@ -141,9 +144,12 @@ public class BusinessProfileService implements IBusinessProfileService {
         try {
             existingProfileEntity = repository.getReferenceById(profileId);
             updateWithNewSubscriptions(tobeSubscribedProducts, existingProfileEntity);
-
-            validateProfileWithProducts(ProfileUtil.buildBusinessProfile(existingProfileEntity,
-                    tobeSubscribedProducts));
+            if (tobeSubscribedProducts.isEmpty()) {
+                log.info("Profile with profileId : {} is already subscribed to given products", profileId);
+                return buildBusinessProfile(profileId, tobeSubscribedProducts, existingProfileEntity);
+            }
+            BusinessProfile profile = buildBusinessProfile(existingProfileEntity, tobeSubscribedProducts);
+            validationUtil.validateProfileWithProducts(profile, profile.getSubscriptionProducts().getProducts());
 
             Set<SubscriptionEntity> updatedSubscriptionEntities =
                     getUpdatedSubscriptionEntities(tobeSubscribedProducts,
@@ -163,21 +169,6 @@ public class BusinessProfileService implements IBusinessProfileService {
         }
     }
 
-    /**
-     * validates against all products and throws exception if validation fails
-     *
-     * @param profile todo update
-     */
-    private void validateProfileWithProducts(BusinessProfile profile) {
-        List<ValidationResponse> responses = validationService.validate(profile,
-                profile.getSubscriptionProducts().getProducts());
-        List<ValidationResponse> validationFailedResponses = responses.stream()
-                .filter(response -> response.getStatus() == ValidationStatus.FAILED)
-                .collect(Collectors.toList());
-        if (!validationFailedResponses.isEmpty()) {
-            throw new DataValidationException(validationFailedResponses);
-        }
-    }
 
     private void updateWithNewSubscriptions(List<String> tobeSubscribedProducts,
                                             ProfileEntity existingProfileEntity) {

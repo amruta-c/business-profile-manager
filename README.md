@@ -62,32 +62,34 @@ This service validates business profile data for each QuickBooks product.
 
 ```json
 {
-  "company_name": "test",
-  "legal_name": "testLegal",
-  "business_address": {
-    "line1": "main1",
-    "line2": "line2",
-    "city": "blr",
-    "state": "KAR",
-    "zip": "560066",
-    "country": "IN"
+  "business_profile": {
+    "company_name": "test",
+    "legal_name": "testLegal",
+    "business_address": {
+      "line1": "main1",
+      "line2": "line2",
+      "city": "blr",
+      "state": "KAR",
+      "zip": "560066",
+      "country": "IN"
+    },
+    "legal_address": {
+      "line1": "main1",
+      "line2": "line2",
+      "city": "blr",
+      "state": "KAR",
+      "zip": "560066",
+      "country": "IN"
+    },
+    "tax_identifiers": [
+      {
+        "tax_identifier_type": "PAN",
+        "tax_identifier_no": "CVZZ17P32P"
+      }
+    ],
+    "email": "test@test.com",
+    "website": "www.test.com"
   },
-  "legal_address": {
-    "line1": "main1",
-    "line2": "line2",
-    "city": "blr",
-    "state": "KAR",
-    "zip": "560066",
-    "country": "IN"
-  },
-  "tax_identifiers": [
-    {
-      "tax_identifier_type": "PAN",
-      "tax_identifier_no": "CVZZ17P32P"
-    }
-  ],
-  "email": "test@test.com",
-  "website": "www.test.com",
   "product": "accounting"
 }
 ```
@@ -96,9 +98,9 @@ This service validates business profile data for each QuickBooks product.
 
 ```json
 {
-  "productId": "accounting",
+  "product_id": "accounting",
   "status": "SUCCESSFUL",
-  "validationMessage": "Data is valid. Validation done by accounting product"
+  "validation_message": "Data is valid. Validation done by accounting product"
 }
 ```
 

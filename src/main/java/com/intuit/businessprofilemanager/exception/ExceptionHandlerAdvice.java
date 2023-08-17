@@ -14,11 +14,11 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.util.List;
 
 @ControllerAdvice
-public class ApiExceptionMapper extends ResponseEntityExceptionHandler {
+public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
     private HttpHeaders contentType = new HttpHeaders();
     private final AppMetrics metrics;
 
-    public ApiExceptionMapper(AppMetrics metrics) {
+    public ExceptionHandlerAdvice(AppMetrics metrics) {
         contentType.setContentType(MediaType.APPLICATION_JSON);
         this.metrics = metrics;
     }
@@ -91,6 +91,6 @@ public class ApiExceptionMapper extends ResponseEntityExceptionHandler {
 
 
     private String getFailedValidationErrorDetail(List<ValidationResponse> failedValidationResponses) {
-        return "Failed to validate profile data for profileId : " + failedValidationResponses.get(0).getProductId();
+        return "Failed to validate profile data for profileId : " + failedValidationResponses.get(0).getProduct();
     }
 }
