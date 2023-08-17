@@ -13,7 +13,7 @@ public interface IBusinessProfileService {
 
     BusinessProfileData updateProfile(Long profileId, BusinessProfileUpdateRequest profile);
 
-    boolean deleteProfile(Long profileId);
+    void deleteProfile(Long profileId);
 
     BusinessProfile updateSubscription(Long profileId, List<String> subscriptions);
 }

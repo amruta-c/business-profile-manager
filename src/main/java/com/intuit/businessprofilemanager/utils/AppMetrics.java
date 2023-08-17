@@ -62,7 +62,7 @@ public class AppMetrics {
         this.totalSubscriptionCount.increment();
     }
 
-    public void incrementUnsubscriptionCount() {
+    /*public void incrementUnsubscriptionCount() {
         this.totalUnsubscriptionCount.increment();
-    }
+    }*/
 }

@@ -47,4 +47,20 @@ public class BusinessProfileController {
         return ResponseEntity.ok(businessProfileService.updateProfile(profileId, request));
     }
 
+    /**
+     * Deletes the business profile associated with the provided profile ID.
+     * <p>
+     * This API is responsible for deleting the business profile corresponding to the given profile ID.
+     * It may require appropriate privileges to perform the deletion.
+     *
+     * @param profileId The unique identifier of the profile to be deleted.
+     * @return A message indicating the result of the deletion.
+     */
+
+    @DeleteMapping("/{profile_id}")
+    public ResponseEntity<String> deleteProfile(@PathVariable(name = "profile_id") @NotBlank Long profileId) {
+        businessProfileService.deleteProfile(profileId);
+        return ResponseEntity.ok("Successfully deleted profile.");
+    }
+
 }

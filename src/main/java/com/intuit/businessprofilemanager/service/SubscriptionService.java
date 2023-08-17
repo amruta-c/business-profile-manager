@@ -1,6 +1,9 @@
 package com.intuit.businessprofilemanager.service;
 
-import com.intuit.businessprofilemanager.model.*;
+import com.intuit.businessprofilemanager.model.BusinessProfile;
+import com.intuit.businessprofilemanager.model.SubscriptionProducts;
+import com.intuit.businessprofilemanager.model.SubscriptionRequest;
+import com.intuit.businessprofilemanager.model.SubscriptionResponse;
 import com.intuit.businessprofilemanager.utils.AppMetrics;
 import com.intuit.businessprofilemanager.utils.ValidationUtil;
 import io.micrometer.core.annotation.Timed;
@@ -64,30 +67,30 @@ public class SubscriptionService implements ISubscriptionService {
      * @param request   The list of products in the unsubscription request that need to be unsubscribed.
      * @return The unsubscribed profileId along with a message relevant to the unsubscription status.
      */
-    @Override
+    /*@Override
     @Timed(value = "business-profile-manager.endpoint.unsubscribe.timer")
     public UnsubscriptionResponse unsubscribe(Long profileId, UnsubscriptionRequest request) {
+        BusinessProfileData profile = businessProfileService.getProfile(profileId);
+        List<String> subscribedProducts = profile.getSubscribedProducts();
+        request.getProducts().forEach(product -> {
+            if(!subscribedProducts.contains(product)) {
+                throw new DataNotFoundException("Profile is not subscribed to "+product);
+            }
+        });
+        subscribedProducts.removeAll(request.getProducts());
 
-        // todo not in requirement,
-        /**
+        if(subscribedProducts.isEmpty()){
+            profile.setA
+        }
+
          *  sub repo .getall sub
          *  sub repo .delet
          *  if empty sub then mark it as inactive.
          *  add active in create and update and subscribe()
-         */
-        boolean isUnsubscribeSuccessful = businessProfileService.deleteProfile(profileId);
-        if (isUnsubscribeSuccessful) {
-            log.info("ProfileId: {} has been successfully unsubscribed.", profileId);
-            metrics.incrementUnsubscriptionCount();
-            return UnsubscriptionResponse.builder()
-                    .profileId(profileId)
-                    .message("The business profile has been successfully unsubscribed.")
-                    .build();
-        }
         log.error("ProfileId: {} couldn't get unsubscribed due to some issue", profileId);
         return UnsubscriptionResponse.builder()
                 .profileId(profileId)
                 .message("The business profile couldn't get unsubscribed.")
                 .build();
-    }
+    }*/
 }

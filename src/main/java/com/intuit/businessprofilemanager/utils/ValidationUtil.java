@@ -19,10 +19,11 @@ public class ValidationUtil {
     }
 
     /**
-     * todo update descr
+     * Validates the specified business profile against the list of subscribed products.
+     * This method checks if the provided business profile is valid for the given set of subscribed products.
      *
-     * @param profile
-     * @param products
+     * @param profile The business profile to be validated.
+     * @param products The list of subscribed products for which the profile needs to be validated.
      */
     public void validateProfileWithProducts(BusinessProfile profile, List<String> products) {
         List<ValidationResponse> responses = validationService.validate(profile, products);

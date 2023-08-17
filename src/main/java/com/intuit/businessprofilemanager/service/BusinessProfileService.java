@@ -117,10 +117,9 @@ public class BusinessProfileService implements IBusinessProfileService {
      */
     @Override
     @Timed(value = "business-profile-manager.endpoint.delete-profile.timer")
-    public boolean deleteProfile(Long profileId) {
+    public void deleteProfile(Long profileId) {
         try {
             repository.deleteById(profileId);
-            return true;
         } catch (PersistenceException e) {
             String msg = String.format("An error occurred while attempting to delete profile for profileId: %s.",
                     profileId);

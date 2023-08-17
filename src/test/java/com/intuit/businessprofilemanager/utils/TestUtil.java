@@ -69,8 +69,8 @@ public class TestUtil {
     public static ProfileEntity getProfileEntityWithSubscriptions(long profileId, String product) {
         return ProfileEntity.builder()
                 .id(profileId)
-                .businessAddress(AddressEntity.builder().build())
-                .legalAddress(AddressEntity.builder().build())
+                .businessAddress(AddressEntity.builder().addressType(AddressType.BUSINESS).build())
+                .legalAddress(AddressEntity.builder().addressType(AddressType.LEGAL).build())
                 .taxIdentifiers(Set.of(TaxIdentifiersEntity.builder().build()))
                 .subscriptionEntities(Set.of(SubscriptionEntity.builder().product(product).build()))
                 .build();

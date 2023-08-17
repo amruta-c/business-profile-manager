@@ -177,7 +177,7 @@ class BusinessProfileServiceTest {
     @Test
     void testDeleteProfile() {
         doNothing().when(repository).deleteById(ID);
-        assertTrue(service.deleteProfile(ID));
+        service.deleteProfile(ID);
         verify(repository).deleteById(ID);
     }
 
@@ -187,8 +187,8 @@ class BusinessProfileServiceTest {
         RepositoryException exception = assertThrows(RepositoryException.class,
                 () -> service.deleteProfile(ID), "Expect deleteProfile() to throw RepositoryException but it didn't");
 
-        String expectedMessage = String.format("An error occurred while attempting to delete profile for profileId: %s.",
-                ID);
+        String expectedMessage = String.format(
+                "An error occurred while attempting to delete profile for profileId: %s.", ID);
         assertEquals(expectedMessage, exception.getMessage());
         verify(repository).deleteById(ID);
     }

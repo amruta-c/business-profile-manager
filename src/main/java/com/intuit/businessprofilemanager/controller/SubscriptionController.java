@@ -1,6 +1,8 @@
 package com.intuit.businessprofilemanager.controller;
 
-import com.intuit.businessprofilemanager.model.*;
+import com.intuit.businessprofilemanager.model.SubscriptionProducts;
+import com.intuit.businessprofilemanager.model.SubscriptionRequest;
+import com.intuit.businessprofilemanager.model.SubscriptionResponse;
 import com.intuit.businessprofilemanager.service.ISubscriptionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -55,10 +57,10 @@ public class SubscriptionController {
      * @param request   The list of products in the unsubscription request that need to be unsubscribed.
      * @return ResponseEntity containing the unsubscribed profileId along with a message relevant to the unsubscription status.
      */
-    @PostMapping("/profiles/{profile_id}/unsubscribe")
+    /*@PostMapping("/profiles/{profile_id}/unsubscribe")
     public ResponseEntity<UnsubscriptionResponse> unsubscribe(@PathVariable(name = "profile_id") Long profileId,
                                                               @RequestBody @Valid UnsubscriptionRequest request) {
         return ResponseEntity.ok(subscriptionService.unsubscribe(profileId, request));
-    }
+    }*/
 
 }

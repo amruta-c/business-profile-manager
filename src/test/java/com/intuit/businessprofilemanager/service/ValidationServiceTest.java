@@ -41,7 +41,7 @@ class ValidationServiceTest {
                 .thenReturn(getValidationResponseResponseEntity(PAYROLL, ValidationStatus.SUCCESSFUL));
         when(validationClient.callValidationApi(profile, PAYMENT))
                 .thenReturn(getValidationResponseResponseEntity(PAYMENT, ValidationStatus.SUCCESSFUL));
-
+        doNothing().when(metrics).incrementValidationApiSuccessCount();
         List<ValidationResponse> responses = service.validate(profile, products);
 
         responses.forEach(response -> {

@@ -28,7 +28,7 @@ import static com.intuit.businessprofilemanager.utils.TestConstants.PAYMENT;
 import static com.intuit.businessprofilemanager.utils.TestUtil.buildBusinessProfileUpdateRequest;
 import static com.intuit.businessprofilemanager.utils.TestUtil.getBusinessProfile;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
 @WebFluxTest(controllers = BusinessProfileController.class)
@@ -165,4 +165,16 @@ class BusinessProfileControllerTest {
                 });
     }
 
+    @Test
+    void testDeleteProfile() {
+        Long profileId = 1L;
+        doNothing().when(businessProfileService).deleteProfile(profileId);
+
+        webTestClient.delete()
+                .uri("/profiles/{profile_id}", profileId)
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(businessProfileService).deleteProfile(profileId);
+    }
 }

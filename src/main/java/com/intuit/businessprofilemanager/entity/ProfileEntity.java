@@ -31,11 +31,11 @@ public class ProfileEntity implements Serializable {
     @Column(name = "website")
     private String website;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "legal_address_id")
     private AddressEntity legalAddress;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "business_address_id")
     private AddressEntity businessAddress;
 

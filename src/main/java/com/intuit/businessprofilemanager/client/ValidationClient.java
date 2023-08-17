@@ -47,8 +47,7 @@ public class ValidationClient {
 
         try {
             log.info("Making request to validation API: {} at: {}", url, LocalDateTime.now());
-            ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, requestEntity, String.class);
-            return createResponseEntity(responseEntity.getStatusCode(), responseEntity.getBody());
+            return restTemplate.postForEntity(url, requestEntity, ValidationResponse.class);
         } catch (RestClientException e) {
             String message = String.format(
                     "Validation API encountered an issue with the provided product : %s and profileId : %s",
@@ -63,21 +62,10 @@ public class ValidationClient {
         return createErrorResponse("Fallback validation performed due to service unavailability: " + ex.getMessage());
     }
 
-    private ResponseEntity<ValidationResponse> createResponseEntity(HttpStatus status, String validationMessage) {
-        //todo parse validationMessage to response object
-        return ResponseEntity.status(status)
-                .body(ValidationResponse.builder()
-                        .status(status.is2xxSuccessful() ? ValidationStatus.SUCCESSFUL : ValidationStatus.FAILED)
-                        .statusCode(status)
-                        .validationMessage(validationMessage)
-                        .build());
-    }
-
     private ResponseEntity<ValidationResponse> createErrorResponse(String errorMessage) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ValidationResponse.builder()
                         .status(ValidationStatus.FAILED)
-                        .statusCode(HttpStatus.INTERNAL_SERVER_ERROR)
                         .validationMessage(errorMessage)
                         .build());
     }

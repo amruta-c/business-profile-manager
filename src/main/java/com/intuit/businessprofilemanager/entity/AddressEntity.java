@@ -5,7 +5,6 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.util.Set;
 
 
 @Entity(name = "address")
@@ -43,10 +42,10 @@ public class AddressEntity implements Serializable {
     @Column(name = "country")
     private String country;
 
-    @OneToMany(mappedBy = "legalAddress")
-    private Set<ProfileEntity> profilesWithLegalAddress;
+    @OneToOne(mappedBy = "legalAddress")
+    private ProfileEntity profilesWithLegalAddress;
 
-    @OneToMany(mappedBy = "businessAddress")
-    private Set<ProfileEntity> profilesWithBusinessAddress;
+    @OneToOne(mappedBy = "businessAddress")
+    private ProfileEntity profilesWithBusinessAddress;
 
 }
