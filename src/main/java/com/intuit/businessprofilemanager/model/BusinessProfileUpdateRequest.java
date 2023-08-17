@@ -30,6 +30,6 @@ public class BusinessProfileUpdateRequest {
     private List<TaxIdentifier> taxIdentifiers;
     @Email
     private String email;
-    @Pattern(regexp = "^(http:\\/\\/|https:\\/\\/)?(www\\.)?([a-zA-Z0-9]+)\\.[a-zA-Z0-9]*\\.[a-z]{3}\\.?([a-z]+)?$")
+    @Pattern(regexp = "^(http(s)?://)?(www\\.)?([a-zA-Z0-9]+)\\.[a-zA-Z0-9]*\\.[a-z]{2,6}(\\.[a-z]{2})?(/?|\\S*)$")
     private String website;
 }

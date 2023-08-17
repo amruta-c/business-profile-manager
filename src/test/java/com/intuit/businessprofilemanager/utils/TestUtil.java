@@ -8,6 +8,7 @@ import com.intuit.businessprofilemanager.model.*;
 import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -77,5 +78,35 @@ public class TestUtil {
 
     public static SubscriptionProducts getSubscriptionProducts(List<String> products) {
         return SubscriptionProducts.builder().products(products).build();
+    }
+
+    public static BusinessProfileUpdateRequest buildBusinessProfileUpdateRequest(String email, String companyName) {
+        return BusinessProfileUpdateRequest.builder()
+                .companyName(companyName)
+                .legalName("Dummy Legal")
+                .businessAddress(buildDummyAddress())
+                .legalAddress(buildDummyAddress())
+                .taxIdentifiers(Collections.singletonList(buildDummyTaxIdentifier()))
+                .email(email)
+                .website("http://www.example.com")
+                .build();
+    }
+
+    private static Address buildDummyAddress() {
+        return Address.builder()
+                .line1("123 Main St")
+                .line2("124 st")
+                .city("Dummy City")
+                .state("Dummy State")
+                .zip("12345")
+                .country("Dummy Country")
+                .build();
+    }
+
+    private static TaxIdentifier buildDummyTaxIdentifier() {
+        return TaxIdentifier.builder()
+                .taxIdentifierType(TaxIdentifierType.EAN)
+                .taxIdentifierNo("123456")
+                .build();
     }
 }

@@ -1,79 +1,172 @@
 package com.intuit.businessprofilemanager.controller;
 
+import com.intuit.businessprofilemanager.exception.DataNotFoundException;
 import com.intuit.businessprofilemanager.exception.ExceptionHandlerAdvice;
+import com.intuit.businessprofilemanager.exception.RepositoryException;
 import com.intuit.businessprofilemanager.model.BusinessProfileData;
+import com.intuit.businessprofilemanager.model.BusinessProfileUpdateRequest;
+import com.intuit.businessprofilemanager.model.ErrorResponse;
 import com.intuit.businessprofilemanager.service.BusinessProfileService;
 import com.intuit.businessprofilemanager.utils.AppMetrics;
-import org.junit.jupiter.api.DisplayName;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.List;
+
+import static com.intuit.businessprofilemanager.utils.TestConstants.ERROR_MESSAGE;
+import static com.intuit.businessprofilemanager.utils.TestConstants.PAYMENT;
+import static com.intuit.businessprofilemanager.utils.TestUtil.buildBusinessProfileUpdateRequest;
+import static com.intuit.businessprofilemanager.utils.TestUtil.getBusinessProfile;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @ExtendWith(SpringExtension.class)
-//@ContextConfiguration(classes = {AppMetrics.class})
-@AutoConfigureMockMvc(addFilters = false)
-@WebMvcTest
-@Import({BusinessProfileController.class, SubscriptionController.class, ExceptionHandlerAdvice.class, AppMetrics.class})
+@WebFluxTest(controllers = BusinessProfileController.class)
+@AutoConfigureWebTestClient(timeout = "1000")
+@Import({
+        ExceptionHandlerAdvice.class,
+        AppMetrics.class,
+        SimpleMeterRegistry.class
+})
 class BusinessProfileControllerTest {
 
-
-    private static final String BUSINESS_PROFILE_URL = "/profiles/";
-
+    @Autowired
+    private WebTestClient webTestClient;
     @MockBean
     private BusinessProfileService businessProfileService;
 
-    @Autowired
-    private MockMvc mockMvc;
-
     @Test
-    @DisplayName("Test get profile for positive test case")
-    void testGetProfile() throws Exception {
-        Long validProfileId = 123L;
-        BusinessProfileData data = BusinessProfileData.builder().build();
-        when(businessProfileService.getProfile(validProfileId)).thenReturn(data);
-        var result = mockMvc.perform(get("/profiles/" + validProfileId)
-                .accept(MediaType.APPLICATION_JSON)).andReturn();
-        assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK);
-//        webTestClient.get()
-//                .uri("/profiles/" + validProfileId)
-//                .accept(MediaType.APPLICATION_JSON)
-//                .exchange()
-//                .expectStatus().isOk()
-//                .expectBody(BusinessProfileData.class)
-//                .isEqualTo(data);
-//        getTo(BUSINESS_PROFILE_URL + validProfileId)
-//                .exchange()
-//                .expectStatus()
-//                .isOk()
-//                .expectBody(BusinessProfileData.class);
+    void testGetBusinessProfile_ValidProfileId_ReturnsProfile() {
+        Long profileId = 1L;
+        BusinessProfileData mockProfileData = BusinessProfileData.builder()
+                .profile(getBusinessProfile()).build();
+        when(businessProfileService.getProfile(profileId)).thenReturn(mockProfileData);
+
+        webTestClient.get()
+                .uri("/profiles/{profile_id}", profileId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BusinessProfileData.class)
+                .isEqualTo(mockProfileData);
     }
 
     @Test
-    @DisplayName("Test get profile for invalid profileId")
-    void testGetProfileForInvalidProfileId() {
-        String invalidId = "";
-//        getTo(BUSINESS_PROFILE_URL + invalidId)
-//                .exchange()
-//                .expectStatus()
-//                .isBadRequest()
-//                .expectBody();
+    void testGetBusinessProfile_InvalidProfileId() {
+        Long invalidProfileId = 999L;
+        when(businessProfileService.getProfile(invalidProfileId)).thenThrow(new DataNotFoundException(ERROR_MESSAGE));
+
+        webTestClient.get()
+                .uri("/profiles/{profile_id}", invalidProfileId)
+                .exchange()
+                .expectStatus().is4xxClientError()
+                .expectBody(ErrorResponse.class)
+                .value(errorResponse -> {
+                    assertEquals(HttpStatus.NOT_FOUND, errorResponse.getResponseCode());
+                    assertEquals("Provided profileId is not subscribed or is invalid.",
+                            errorResponse.getResponseMessage());
+                    assertEquals(ERROR_MESSAGE, errorResponse.getResponseDetail());
+                });
     }
 
-//    private WebTestClient.RequestBodySpec putTo(String url) {
-//        return webTestClient.put().uri(url).contentType(MediaType.APPLICATION_JSON);
-//    }
+    @Test
+    void testUpdateProfile_ValidData_ReturnsUpdatedProfile() {
+        Long profileId = 1L;
+        String email = "test@test.com";
+        String companyName = "testCompany";
+        BusinessProfileUpdateRequest updateRequest = buildBusinessProfileUpdateRequest(email, companyName);
+        BusinessProfileData mockUpdatedProfileData = BusinessProfileData.builder()
+                .profile(getBusinessProfile())
+                .subscribedProducts(List.of(PAYMENT))
+                .build();
+        when(businessProfileService.updateProfile(profileId, updateRequest)).thenReturn(mockUpdatedProfileData);
 
+        webTestClient.put()
+                .uri("/profiles/{profile_id}", profileId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(updateRequest)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BusinessProfileData.class)
+                .isEqualTo(mockUpdatedProfileData);
+    }
+
+    @Test
+    void testUpdateProfile_InvalidProfileId() {
+        Long profileId = 1L;
+        String email = "test@test.com";
+        String companyName = "testCompany";
+        BusinessProfileUpdateRequest updateRequest = buildBusinessProfileUpdateRequest(email, companyName);
+        when(businessProfileService.updateProfile(profileId, updateRequest)).thenThrow(new DataNotFoundException(ERROR_MESSAGE));
+
+        webTestClient.put()
+                .uri("/profiles/{profile_id}", profileId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(updateRequest)
+                .exchange()
+                .expectStatus().is4xxClientError()
+                .expectBody(ErrorResponse.class)
+                .value(errorResponse -> {
+                    assertEquals(HttpStatus.NOT_FOUND, errorResponse.getResponseCode());
+                    assertEquals("Provided profileId is not subscribed or is invalid.",
+                            errorResponse.getResponseMessage());
+                    assertEquals(ERROR_MESSAGE, errorResponse.getResponseDetail());
+                });
+    }
+
+    @Test
+    void testUpdateProfile_WhenRepositoryExceptionIsThrown() {
+        Long profileId = 1L;
+        String email = "test@test.com";
+        String companyName = "testCompany";
+        BusinessProfileUpdateRequest updateRequest = buildBusinessProfileUpdateRequest(email, companyName);
+        when(businessProfileService.updateProfile(profileId, updateRequest)).thenThrow(new RepositoryException(ERROR_MESSAGE));
+
+        webTestClient.put()
+                .uri("/profiles/{profile_id}", profileId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(updateRequest)
+                .exchange()
+                .expectStatus().is5xxServerError()
+                .expectBody(ErrorResponse.class)
+                .value(errorResponse -> {
+                    assertEquals(HttpStatus.SERVICE_UNAVAILABLE, errorResponse.getResponseCode());
+                    assertEquals("Exception occurred in repository.",
+                            errorResponse.getResponseMessage());
+                    assertEquals(ERROR_MESSAGE, errorResponse.getResponseDetail());
+                });
+    }
+
+    @Test
+    void testUpdateProfile_WhenExceptionIsThrown() {
+        Long profileId = 1L;
+        String email = "test@test.com";
+        String companyName = "testCompany";
+        BusinessProfileUpdateRequest updateRequest = buildBusinessProfileUpdateRequest(email, companyName);
+        when(businessProfileService.updateProfile(profileId, updateRequest)).thenThrow(new RuntimeException(ERROR_MESSAGE));
+
+        webTestClient.put()
+                .uri("/profiles/{profile_id}", profileId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(updateRequest)
+                .exchange()
+                .expectStatus().is5xxServerError()
+                .expectBody(ErrorResponse.class)
+                .value(errorResponse -> {
+                    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errorResponse.getResponseCode());
+                    assertEquals("An internal server error has occurred.",
+                            errorResponse.getResponseMessage());
+                    assertEquals(ERROR_MESSAGE, errorResponse.getResponseDetail());
+                });
+    }
 
 }

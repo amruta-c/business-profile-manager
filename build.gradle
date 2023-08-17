@@ -32,6 +32,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-validation:${springBootVersion}"
     implementation "mysql:mysql-connector-java:${mysqlConnectorVersion}"
     implementation "org.springframework.boot:spring-boot-starter-parent:${springBootVersion}"
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     /**
      * Circuit Breaker Dependencies using Resilience4j

@@ -7,16 +7,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
 
-@ControllerAdvice
-public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
-    private HttpHeaders contentType = new HttpHeaders();
+@RestControllerAdvice
+public class ExceptionHandlerAdvice {
     private final AppMetrics metrics;
+    private HttpHeaders contentType = new HttpHeaders();
 
     public ExceptionHandlerAdvice(AppMetrics metrics) {
         contentType.setContentType(MediaType.APPLICATION_JSON);
@@ -25,7 +25,7 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
 
 
     @ExceptionHandler(DataValidationException.class)
-    public ResponseEntity<Object> handleInvalidDataException(DataValidationException e) {
+    public ResponseEntity<ErrorResponse> handleDataValidationException(DataValidationException e) {
         metrics.incrementInvalidDataExceptionCount();
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .responseCode(HttpStatus.EXPECTATION_FAILED)
@@ -36,7 +36,7 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(ValidationApiFailureException.class)
-    public ResponseEntity<Object> handleValidationApiFailureException(ValidationApiFailureException e) {
+    public ResponseEntity<ErrorResponse> handleValidationApiFailureException(ValidationApiFailureException e) {
         metrics.incrementValidationApiFailureCount();
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .responseCode(HttpStatus.SERVICE_UNAVAILABLE)
@@ -47,7 +47,7 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(FutureAwaitingException.class)
-    public ResponseEntity<Object> handleUnsuccessfulValidationResponseRetrievalException(FutureAwaitingException e) {
+    public ResponseEntity<ErrorResponse> handleUnsuccessfulValidationResponseRetrievalException(FutureAwaitingException e) {
         metrics.incrementValidationApiFailureCount();
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .responseCode(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -58,7 +58,7 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(DataNotFoundException.class)
-    public ResponseEntity<Object> handleDataNotFoundException(DataNotFoundException e) {
+    public ResponseEntity<ErrorResponse> handleDataNotFoundException(DataNotFoundException e) {
         metrics.incrementDataNotFoundCount();
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .responseCode(HttpStatus.NOT_FOUND)
@@ -69,7 +69,7 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(RepositoryException.class)
-    public ResponseEntity<Object> handleRepositoryException(RepositoryException e) {
+    public ResponseEntity<ErrorResponse> handleRepositoryException(RepositoryException e) {
         metrics.incrementRepositoryExceptionCount();
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .responseCode(HttpStatus.SERVICE_UNAVAILABLE)
@@ -79,8 +79,18 @@ public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Object> handleException(Exception e) {
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleException(MethodArgumentNotValidException e) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .responseCode(HttpStatus.BAD_REQUEST)
+                .responseMessage("Bad request.")
+                .responseDetail(e.getMessage())
+                .build();
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleException(Exception e) {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .responseCode(HttpStatus.INTERNAL_SERVER_ERROR)
                 .responseMessage("An internal server error has occurred.")
